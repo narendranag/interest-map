@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  interest:
+    build: .
+    container_name: team-interest
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      # When you swap to real data, inject DB creds here
+      # WAREHOUSE_URL: postgresql+psycopg://user:pass@host:5432/dbname
+      # or SNOWFLAKE_... variables, etc.
+      STREAMLIT_SERVER_HEADLESS: "true"
