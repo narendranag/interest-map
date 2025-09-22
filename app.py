@@ -49,7 +49,6 @@ st.set_page_config(
 st.title("Advertiser Interest – Team Comparison")
 st.caption(
     "Proxy = Google Trends + Wikipedia Pageviews (daily)."
-    " Swap in bid logs later for Bid Volume & Bid Rate."
 )
 
 
