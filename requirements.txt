@@ -1,6 +1,6 @@
-streamlit==1.37.0
-pandas==1.5.3
-numpy==1.26.4
-pytrends==4.9.2
-altair==5.3.0
-requests==2.32.3
+streamlit 
+pandas 
+numpy 
+pytrends 
+altair 
+requests
