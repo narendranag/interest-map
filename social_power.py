@@ -543,8 +543,8 @@ def compute_social_power(
 # -----------------------------------------------------------------------------
 
 def main() -> None:
-    st.set_page_config(page_title="Team Social Power Dashboard", layout="wide")
-    st.title("Team Social Power Dashboard")
+    st.set_page_config(page_title="Social Power Dashboard", layout="wide")
+    st.title("Social Power Dashboard")
     st.caption(
         "Combine Google Trends, Wikipedia pageviews, Instagram followers, engagement and YouTube metrics to "
         "approximate digital attention for NBA, MLB and NHL teams."
