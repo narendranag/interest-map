@@ -60,13 +60,12 @@ except ImportError:
     build = None
 
 try:
-    # snscrape is used to scrape recent tweets for engagement metrics.  It
-    # makes unauthenticated requests to Twitter and therefore may be subject
-    # to rate limits.  It is optional; if not available engagement will
-    # default to zero.
-    import snscrape.modules.twitter as sntwitter  # type: ignore
+    # instaloader is used to scrape public Instagram account statistics such
+    # as follower counts and recent posts.  It can work without login for
+    # public accounts.  If not installed, Instagram metrics will be set to zero.
+    import instaloader  # type: ignore
 except ImportError:
-    sntwitter = None
+    instaloader = None
 
 # -----------------------------------------------------------------------------
 # Team definitions
@@ -119,108 +118,108 @@ LEAGUE_TEAMS: Dict[str, List[str]] = {
 TEAM_TO_LEAGUE: Dict[str, str] = {t: lg for lg, teams in LEAGUE_TEAMS.items() for t in teams}
 
 # -----------------------------------------------------------------------------
-# Twitter handle mappings
+# Instagram handle mappings
 # -----------------------------------------------------------------------------
-# Many social metrics can be approximated from a team's official X/Twitter
+# Many social metrics can be approximated from a team's official Instagram
 # account.  The functions below use these handles to fetch follower counts and
 # basic engagement.  Feel free to adjust or update the mapping if you notice
 # newer or more accurate handles for a given team.
-TEAM_TWITTER_HANDLES: Dict[str, str] = {
+TEAM_INSTAGRAM_HANDLES: Dict[str, str] = {
     # NBA
-    "Atlanta Hawks": "ATLHawks",
+    "Atlanta Hawks": "atlhawks",
     "Boston Celtics": "celtics",
-    "Brooklyn Nets": "BrooklynNets",
+    "Brooklyn Nets": "brooklynnets",
     "Charlotte Hornets": "hornets",
     "Chicago Bulls": "chicagobulls",
     "Cleveland Cavaliers": "cavs",
     "Dallas Mavericks": "dallasmavs",
     "Denver Nuggets": "nuggets",
-    "Detroit Pistons": "DetroitPistons",
+    "Detroit Pistons": "detroitpistons",
     "Golden State Warriors": "warriors",
-    "Houston Rockets": "HoustonRockets",
-    "Indiana Pacers": "Pacers",
-    "LA Clippers": "LAClippers",
-    "Los Angeles Lakers": "Lakers",
+    "Houston Rockets": "houstonrockets",
+    "Indiana Pacers": "pacers",
+    "LA Clippers": "laclippers",
+    "Los Angeles Lakers": "lakers",
     "Memphis Grizzlies": "memgrizz",
     "Miami Heat": "miamiheat",
-    "Milwaukee Bucks": "Bucks",
-    "Minnesota Timberwolves": "Timberwolves",
-    "New Orleans Pelicans": "PelicansNBA",
+    "Milwaukee Bucks": "bucks",
+    "Minnesota Timberwolves": "timberwolves",
+    "New Orleans Pelicans": "pelicansnba",
     "New York Knicks": "nyknicks",
     "Oklahoma City Thunder": "okcthunder",
-    "Orlando Magic": "OrlandoMagic",
+    "Orlando Magic": "orlandomagic",
     "Philadelphia 76ers": "sixers",
     "Phoenix Suns": "suns",
     "Portland Trail Blazers": "trailblazers",
-    "Sacramento Kings": "SacramentoKings",
+    "Sacramento Kings": "sacramentokings",
     "San Antonio Spurs": "spurs",
-    "Toronto Raptors": "Raptors",
+    "Toronto Raptors": "raptors",
     "Utah Jazz": "utahjazz",
-    "Washington Wizards": "WashWizards",
+    "Washington Wizards": "washwizards",
     # MLB
-    "Arizona Diamondbacks": "Dbacks",
-    "Atlanta Braves": "Braves",
-    "Baltimore Orioles": "Orioles",
-    "Boston Red Sox": "RedSox",
-    "Chicago Cubs": "Cubs",
+    "Arizona Diamondbacks": "dbacks",
+    "Atlanta Braves": "braves",
+    "Baltimore Orioles": "orioles",
+    "Boston Red Sox": "redsox",
+    "Chicago Cubs": "cubs",
     "Chicago White Sox": "whitesox",
-    "Cincinnati Reds": "Reds",
-    "Cleveland Guardians": "CleGuardians",
-    "Colorado Rockies": "Rockies",
+    "Cincinnati Reds": "reds",
+    "Cleveland Guardians": "cleguardians",
+    "Colorado Rockies": "rockies",
     "Detroit Tigers": "tigers",
     "Houston Astros": "astros",
-    "Kansas City Royals": "Royals",
-    "Los Angeles Angels": "Angels",
-    "Los Angeles Dodgers": "Dodgers",
-    "Miami Marlins": "Marlins",
-    "Milwaukee Brewers": "Brewers",
-    "Minnesota Twins": "Twins",
-    "New York Mets": "Mets",
-    "New York Yankees": "Yankees",
-    "Oakland Athletics": "Athletics",
-    "Philadelphia Phillies": "Phillies",
-    "Pittsburgh Pirates": "Pirates",
-    "San Diego Padres": "Padres",
-    "San Francisco Giants": "SFGiants",
-    "Seattle Mariners": "Mariners",
-    "St. Louis Cardinals": "Cardinals",
-    "Tampa Bay Rays": "RaysBaseball",
-    "Texas Rangers": "Rangers",
-    "Toronto Blue Jays": "BlueJays",
-    "Washington Nationals": "Nationals",
+    "Kansas City Royals": "royals",
+    "Los Angeles Angels": "angels",
+    "Los Angeles Dodgers": "dodgers",
+    "Miami Marlins": "marlins",
+    "Milwaukee Brewers": "brewers",
+    "Minnesota Twins": "twins",
+    "New York Mets": "mets",
+    "New York Yankees": "yankees",
+    "Oakland Athletics": "athletics",
+    "Philadelphia Phillies": "phillies",
+    "Pittsburgh Pirates": "pirates",
+    "San Diego Padres": "padres",
+    "San Francisco Giants": "sfgiants",
+    "Seattle Mariners": "mariners",
+    "St. Louis Cardinals": "cardinals",
+    "Tampa Bay Rays": "raysbaseball",
+    "Texas Rangers": "rangers",
+    "Toronto Blue Jays": "bluejays",
+    "Washington Nationals": "nationals",
     # NHL
-    "Anaheim Ducks": "AnaheimDucks",
-    "Arizona Coyotes": "ArizonaCoyotes",
-    "Boston Bruins": "NHLBruins",
-    "Buffalo Sabres": "BuffaloSabres",
-    "Calgary Flames": "NHLFlames",
-    "Carolina Hurricanes": "Canes",
-    "Chicago Blackhawks": "NHLBlackhawks",
-    "Colorado Avalanche": "Avalanche",
-    "Columbus Blue Jackets": "BlueJacketsNHL",
-    "Dallas Stars": "DallasStars",
-    "Detroit Red Wings": "DetroitRedWings",
-    "Edmonton Oilers": "EdmontonOilers",
-    "Florida Panthers": "FlaPanthers",
-    "Los Angeles Kings": "LAKings",
+    "Anaheim Ducks": "anaheimducks",
+    "Arizona Coyotes": "arizonacoyotes",
+    "Boston Bruins": "bostonbruins",
+    "Buffalo Sabres": "buffalosabres",
+    "Calgary Flames": "nhlflames",
+    "Carolina Hurricanes": "canes",
+    "Chicago Blackhawks": "nhlblackhawks",
+    "Colorado Avalanche": "avalanche",
+    "Columbus Blue Jackets": "bluejacketsnhl",
+    "Dallas Stars": "dallasstars",
+    "Detroit Red Wings": "detroitredwings",
+    "Edmonton Oilers": "edmontonoilers",
+    "Florida Panthers": "flapanthers",
+    "Los Angeles Kings": "lakings",
     "Minnesota Wild": "mnwild",
-    "Montreal Canadiens": "CanadiensMTL",
-    "Nashville Predators": "PredsNHL",
-    "New Jersey Devils": "NJDevils",
-    "New York Islanders": "NYIslanders",
-    "New York Rangers": "NYRangers",
-    "Ottawa Senators": "Senators",
-    "Philadelphia Flyers": "NHLFlyers",
+    "Montreal Canadiens": "canadiensmtl",
+    "Nashville Predators": "predsnhl",
+    "New Jersey Devils": "njdevils",
+    "New York Islanders": "nyislanders",
+    "New York Rangers": "nyrangers",
+    "Ottawa Senators": "senators",
+    "Philadelphia Flyers": "nhlflyers",
     "Pittsburgh Penguins": "penguins",
-    "San Jose Sharks": "SanJoseSharks",
-    "Seattle Kraken": "SeattleKraken",
-    "St. Louis Blues": "StLouisBlues",
-    "Tampa Bay Lightning": "TBLightning",
-    "Toronto Maple Leafs": "MapleLeafs",
-    "Vancouver Canucks": "Canucks",
-    "Vegas Golden Knights": "GoldenKnights",
-    "Washington Capitals": "Capitals",
-    "Winnipeg Jets": "NHLJets",
+    "San Jose Sharks": "sanjosesharks",
+    "Seattle Kraken": "seattlekraken",
+    "St. Louis Blues": "stlouisblues",
+    "Tampa Bay Lightning": "tblightning",
+    "Toronto Maple Leafs": "mapleleafs",
+    "Vancouver Canucks": "canucks",
+    "Vegas Golden Knights": "vegasgoldenknights",
+    "Washington Capitals": "capitals",
+    "Winnipeg Jets": "winnipegjets",
 }
 
 # -----------------------------------------------------------------------------
@@ -387,95 +386,89 @@ def normalize_frame_per_team(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(normalize_series)
 
 # -----------------------------------------------------------------------------
-# Twitter helpers
+# Instagram helpers
 # -----------------------------------------------------------------------------
-def fetch_twitter_followers(handle: str) -> float:
+def fetch_instagram_followers(handle: str) -> float:
     """
-    Fetch the follower count for a Twitter/X account via an unofficial endpoint.
+    Fetch the follower count for a public Instagram account.
 
-    This function calls the public endpoint used by Twitter's follow button
-    widgets.  It returns a JSON list with follower counts and other metadata.
-    If the request fails or the expected field is missing, the function
-    returns 0.0.
+    This function attempts to use the `instaloader` library to access public
+    profile metadata.  If instaloader is not installed or the request fails,
+    the function returns 0.0.
 
     Parameters
     ----------
     handle : str
-        The Twitter username without the leading '@'.
+        The Instagram username without the leading '@'.
 
     Returns
     -------
     float
         The follower count for the account, or 0 if unavailable.
     """
-    url = (
-        "https://cdn.syndication.twimg.com/widgets/followbutton/info.json"
-        f"?screen_names={handle}"
-    )
+    if instaloader is None:
+        return 0.0
     try:
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        if isinstance(data, list) and data:
-            info = data[0]
-            # Twitter uses both 'followers_count' and 'followersCount' in its
-            # endpoints; handle either case.
-            return float(
-                info.get("followers_count")
-                or info.get("followersCount")
-                or 0
-            )
+        L = instaloader.Instaloader(max_connection_attempts=1, sleep=False)
+        # Do not download anything besides metadata
+        profile = instaloader.Profile.from_username(L.context, handle)
+        return float(profile.followers)
     except Exception:
-        pass
-    return 0.0
+        return 0.0
 
 
-def fetch_twitter_engagement(handle: str, max_tweets: int = 30) -> float:
+def fetch_instagram_engagement(handle: str, max_posts: int = 20) -> float:
     """
-    Estimate engagement for a Twitter account by averaging likes, retweets and
-    replies across recent tweets.
+    Estimate engagement for a public Instagram account by averaging likes and
+    comments across recent posts.
 
-    The function uses snscrape (if installed) to pull recent tweets from the
-    account and computes the average engagement per tweet.  Engagement per
-    tweet is defined as (likes + retweets + replies).  The function
-    normalizes the result by the follower count to get a relative rate.
+    The function uses the `instaloader` library to fetch recent media from
+    the account.  Engagement per post is defined as (likes + comments).
+    The result is normalized by the follower count to get a relative rate.
 
-    If snscrape is not installed or an error occurs, the function returns 0.
+    If instaloader is not installed or an error occurs, the function returns
+    0.0.
 
     Parameters
     ----------
     handle : str
-        Twitter username without '@'.
-    max_tweets : int, optional
-        Maximum number of recent tweets to analyze (default is 30).
+        Instagram username without '@'.
+    max_posts : int, optional
+        Maximum number of recent posts to analyze (default is 20).
 
     Returns
     -------
     float
         The average engagement per follower for the account, or 0 on failure.
     """
-    if sntwitter is None:
+    if instaloader is None:
         return 0.0
     try:
-        query = f"from:{handle}"
-        tweets = []
-        for i, tweet in enumerate(sntwitter.TwitterSearchScraper(query).get_items()):
-            if i >= max_tweets:
-                break
-            tweets.append(tweet)
-        if not tweets:
+        L = instaloader.Instaloader(max_connection_attempts=1, sleep=False)
+        profile = instaloader.Profile.from_username(L.context, handle)
+        followers = float(profile.followers)
+        if followers <= 0:
             return 0.0
-        total_engagement = 0
-        for t in tweets:
-            likes = getattr(t, "likeCount", 0)
-            retweets = getattr(t, "retweetCount", 0)
-            replies = getattr(t, "replyCount", 0)
-            total_engagement += likes + retweets + replies
-        avg_engagement = total_engagement / len(tweets)
-        followers = fetch_twitter_followers(handle)
-        if followers > 0:
-            return avg_engagement / followers
-        return 0.0
+        posts = profile.get_posts()
+        total_engagement = 0.0
+        count = 0
+        for post in posts:
+            # stop after analyzing max_posts posts
+            if count >= max_posts:
+                break
+            # likes and comments attributes may not be present if not fetched fully
+            likes = getattr(post, "likes", 0)
+            comments = getattr(post, "comments", 0)
+            # instaloader uses comments_count property on Post objects; fallback to
+            # 0 if missing.
+            if comments == 0 and hasattr(post, "comments_count"):
+                comments = getattr(post, "comments_count", 0)
+            total_engagement += likes + comments
+            count += 1
+        if count == 0:
+            return 0.0
+        avg_engagement = total_engagement / count
+        return avg_engagement / followers
     except Exception:
         return 0.0
 
@@ -553,7 +546,7 @@ def main() -> None:
     st.set_page_config(page_title="Team Social Power Dashboard", layout="wide")
     st.title("Team Social Power Dashboard")
     st.caption(
-        "Combine Google Trends, Wikipedia pageviews, social followers, engagement and YouTube metrics to "
+        "Combine Google Trends, Wikipedia pageviews, Instagram followers, engagement and YouTube metrics to "
         "approximate digital attention for NBA, MLB and NHL teams."
     )
 
@@ -576,9 +569,9 @@ def main() -> None:
     if total_w > 0:
         weights = {k: v / total_w for k, v in weights.items()}
 
-    # Option to automatically fetch Twitter metrics
-    fetch_twitter = st.sidebar.checkbox(
-        "Automatically fetch Twitter metrics (followers & engagement)", value=True
+    # Option to automatically fetch Instagram metrics
+    fetch_instagram = st.sidebar.checkbox(
+        "Automatically fetch Instagram metrics (followers & engagement)", value=True
     )
     # File uploader for social media metrics: used as override or fallback when
     # automatic fetching is disabled.
@@ -633,20 +626,20 @@ def main() -> None:
         wiki_norm = pd.DataFrame()
 
     # Prepare followers and engagement data
-    if fetch_twitter:
-        # Use Twitter handles to fetch real-time follower and engagement metrics
+    if fetch_instagram:
+        # Use Instagram handles to fetch real-time follower and engagement metrics
         @st.cache_data(ttl=3600, show_spinner=False)
-        def load_twitter_metrics(team: str) -> Tuple[float, float]:
-            handle = TEAM_TWITTER_HANDLES.get(team)
+        def load_instagram_metrics(team: str) -> Tuple[float, float]:
+            handle = TEAM_INSTAGRAM_HANDLES.get(team)
             if not handle:
                 return (0.0, 0.0)
-            followers = fetch_twitter_followers(handle)
-            engagement = fetch_twitter_engagement(handle, max_tweets=30)
+            followers = fetch_instagram_followers(handle)
+            engagement = fetch_instagram_engagement(handle, max_posts=20)
             return (followers, engagement)
         followers_list: List[float] = []
         engagement_list: List[float] = []
         for team in all_selected_teams:
-            f_val, e_val = load_twitter_metrics(team)
+            f_val, e_val = load_instagram_metrics(team)
             followers_list.append(f_val)
             engagement_list.append(e_val)
         followers_df = pd.DataFrame(
