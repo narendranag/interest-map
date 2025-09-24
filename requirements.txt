@@ -4,3 +4,5 @@ numpy
 pytrends 
 altair 
 requests
+snscrape 
+google-api-python-client
