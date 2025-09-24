@@ -6,3 +6,4 @@ altair
 requests
 snscrape 
 google-api-python-client
+instaloader
