@@ -64,13 +64,13 @@ python -m pipeline.run_pipeline
 4. Run the app:
 
 ```bash
-streamlit run app.py
+streamlit run Home.py
 ```
 
 ## Project structure
 
 ```
-app.py                          # Home page
+Home.py                          # Home page
 pages/                          # Multi-page Streamlit dashboard
   1_League_Overview.py
   2_Team_Deep_Dive.py
