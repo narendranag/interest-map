@@ -1,5 +1,5 @@
 """
-Head to Head — compare 2-5 teams side by side across all metrics.
+Zeitgeist | Head to Head — compare 2-5 teams side by side across all metrics.
 """
 
 from __future__ import annotations
@@ -10,10 +10,17 @@ import streamlit as st
 from lib.charts import grouped_bar_chart, line_chart
 from lib.db import query, table_exists
 from lib.scoring import normalize_min_max
+from lib.styles import apply_premium_theme, section_header
 from lib.teams import ALL_TEAMS, TEAM_TO_LEAGUE
 
-st.set_page_config(page_title="Head to Head", layout="wide")
-st.title("Head to Head")
+st.set_page_config(page_title="Zeitgeist | Head to Head", layout="wide")
+apply_premium_theme()
+
+st.markdown('<h1>Head to Head</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="zg-subtitle">Compare 2-5 teams side by side across every metric</p>',
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------------------------
 # Team selection
@@ -90,18 +97,27 @@ if table_exists("news"):
 # ---------------------------------------------------------------------------
 
 if metric_series:
-    st.subheader("Metric Comparison (latest window)")
+    section_header("Metric Comparison", f"Averages over the last {window} days")
+
     comparison = pd.DataFrame(metric_series).reindex(selected).fillna(0)
     comparison.index.name = "Team"
-    st.dataframe(comparison.style.format("{:.1f}"), use_container_width=True)
+
+    st.dataframe(
+        comparison.style.format("{:.1f}").background_gradient(
+            cmap="Blues", axis=0, subset=comparison.columns
+        ),
+        use_container_width=True,
+    )
 
     # Grouped bar chart
     bar_data = comparison.reset_index().melt(
         id_vars="Team", var_name="Metric", value_name="Score"
     )
     st.altair_chart(
-        grouped_bar_chart(bar_data, "Team", "Score", "Metric",
-                          title="Head-to-Head Comparison"),
+        grouped_bar_chart(
+            bar_data, "Team", "Score", "Metric",
+            title="Head-to-Head Comparison",
+        ),
         use_container_width=True,
     )
 else:
@@ -111,7 +127,7 @@ else:
 # Trendline tabs
 # ---------------------------------------------------------------------------
 
-st.subheader("Trendlines")
+section_header("Trendlines")
 
 trend_sources = {
     "Google Trends": ("trends", "trends_score"),

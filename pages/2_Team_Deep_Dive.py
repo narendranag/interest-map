@@ -1,20 +1,22 @@
 """
-Team Deep Dive — single-team analysis with game results, Victory+
+Zeitgeist | Team Deep Dive — single-team analysis with game results, Victory+
 availability, Reddit buzz, and news volume.
 """
 
 from __future__ import annotations
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
-from lib.charts import anomaly_highlight_chart, line_chart_with_annotations
+from lib.charts import CHART_THEME, line_chart_with_annotations
 from lib.db import query, table_exists
-from lib.scoring import detect_anomalies, normalize_min_max
+from lib.scoring import normalize_min_max
+from lib.styles import LEAGUE_COLORS, apply_premium_theme, section_header
 from lib.teams import ALL_TEAMS, TEAM_TO_LEAGUE, VICTORY_PLUS_TEAMS
 
-st.set_page_config(page_title="Team Deep Dive", layout="wide")
-st.title("Team Deep Dive")
+st.set_page_config(page_title="Zeitgeist | Team Deep Dive", layout="wide")
+apply_premium_theme()
 
 # ---------------------------------------------------------------------------
 # Team selector
@@ -22,17 +24,32 @@ st.title("Team Deep Dive")
 
 team = st.selectbox("Select a team", ALL_TEAMS, index=0)
 league = TEAM_TO_LEAGUE.get(team, "")
+league_color = LEAGUE_COLORS.get(league, "#374151")
 
-col_a, col_b = st.columns(2)
-col_a.markdown(f"**League:** {league}")
+# Styled team header card
+vplus_badge = ""
 if team in VICTORY_PLUS_TEAMS:
-    col_b.markdown(":tv: **Victory+ partner** — some home games stream free on Victory+")
+    vplus_badge = (
+        '&nbsp;&nbsp;<span class="zg-badge zg-badge-success">'
+        "Victory+ Partner</span>"
+    )
+
+st.markdown(
+    f'<div class="zg-card" style="border-left:4px solid {league_color};'
+    f'padding:1rem 1.5rem;margin-bottom:1.5rem">'
+    f'  <h1 style="margin:0;font-size:1.5rem">{team}</h1>'
+    f'  <span class="zg-badge" style="background:{league_color}18;'
+    f'color:{league_color};margin-top:0.5rem">{league}</span>'
+    f"  {vplus_badge}"
+    f"</div>",
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------------------------
 # Trendlines — all metrics overlaid
 # ---------------------------------------------------------------------------
 
-st.subheader("Interest Trendlines")
+section_header("Interest Trendlines", "Normalised metrics (0-100) with game annotations")
 
 frames = []
 
@@ -75,7 +92,6 @@ if table_exists("news"):
 if frames:
     all_metrics = pd.concat(frames, ignore_index=True)
 
-    # Build annotations from ESPN game results
     annotations = pd.DataFrame()
     if table_exists("espn_games"):
         games = query(
@@ -83,14 +99,13 @@ if frames:
             f"WHERE team = '{team}' AND result IS NOT NULL ORDER BY date"
         )
         if not games.empty:
-            # Place annotations at the midpoint of the y-axis
             games["value"] = 50.0
             annotations = games
 
     chart = line_chart_with_annotations(
         all_metrics, "date", "value", "metric",
         annotations_df=annotations,
-        title=f"{team} — Normalised Metrics (0-100)",
+        title=f"{team} — Normalised Metrics",
     )
     st.altair_chart(chart, use_container_width=True)
 else:
@@ -101,7 +116,7 @@ else:
 # ---------------------------------------------------------------------------
 
 if table_exists("espn_games"):
-    st.subheader("Recent Results")
+    section_header("Recent Results")
     results = query(
         f"SELECT date, opponent, home_away, score_team, score_opponent, result "
         f"FROM espn_games "
@@ -109,11 +124,23 @@ if table_exists("espn_games"):
         f"ORDER BY date DESC LIMIT 15"
     )
     if not results.empty:
-        st.dataframe(results.reset_index(drop=True), use_container_width=True, hide_index=True)
+        st.dataframe(
+            results.reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "date": st.column_config.DateColumn("Date"),
+                "opponent": st.column_config.TextColumn("Opponent"),
+                "home_away": st.column_config.TextColumn("H/A", width="small"),
+                "score_team": st.column_config.NumberColumn("Score", format="%d"),
+                "score_opponent": st.column_config.NumberColumn("Opp", format="%d"),
+                "result": st.column_config.TextColumn("Result", width="small"),
+            },
+        )
     else:
         st.caption("No recent results found.")
 
-    st.subheader("Upcoming Schedule")
+    section_header("Upcoming Schedule")
     upcoming = query(
         f"SELECT date, opponent, home_away, broadcasts, victory_plus "
         f"FROM espn_games "
@@ -121,9 +148,8 @@ if table_exists("espn_games"):
         f"ORDER BY date LIMIT 10"
     )
     if not upcoming.empty:
-        # Highlight Victory+ games
         def _fmt_vplus(row):
-            return "\u2705 Victory+" if row["victory_plus"] else ""
+            return "Victory+" if row["victory_plus"] else ""
 
         upcoming["streaming"] = upcoming.apply(_fmt_vplus, axis=1)
         st.dataframe(
@@ -131,13 +157,23 @@ if table_exists("espn_games"):
             .reset_index(drop=True),
             use_container_width=True,
             hide_index=True,
+            column_config={
+                "date": st.column_config.DateColumn("Date"),
+                "opponent": st.column_config.TextColumn("Opponent"),
+                "home_away": st.column_config.TextColumn("H/A", width="small"),
+                "broadcasts": st.column_config.TextColumn("Broadcasts"),
+                "streaming": st.column_config.TextColumn("Streaming", width="small"),
+            },
         )
 
         vplus_games = upcoming[upcoming["victory_plus"]]
         if not vplus_games.empty:
-            st.success(
-                f"**{len(vplus_games)} upcoming game(s) available on Victory+** "
-                f"([victoryplus.com](https://victoryplus.com)) — a free sports streaming platform."
+            st.markdown(
+                f'<div class="zg-alert" style="background:#ECFDF5;border-color:#A7F3D0;color:#065F46">'
+                f"<strong>{len(vplus_games)} upcoming game(s) on Victory+</strong> &mdash; "
+                f'stream free at <a href="https://victoryplus.com" style="color:#059669">'
+                f"victoryplus.com</a></div>",
+                unsafe_allow_html=True,
             )
     else:
         st.caption("No upcoming games found.")
@@ -147,14 +183,12 @@ if table_exists("espn_games"):
 # ---------------------------------------------------------------------------
 
 if table_exists("reddit"):
-    st.subheader("Reddit Community Buzz")
+    section_header("Reddit Community Buzz")
     reddit_data = query(
         f"SELECT date, post_count, total_score, total_comments "
         f"FROM reddit WHERE team = '{team}' ORDER BY date"
     )
     if not reddit_data.empty:
-        import altair as alt
-
         reddit_long = reddit_data.melt(
             id_vars=["date"],
             value_vars=["post_count", "total_comments"],
@@ -163,14 +197,20 @@ if table_exists("reddit"):
         )
         chart = (
             alt.Chart(reddit_long)
-            .mark_bar()
+            .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
             .encode(
                 x="date:T",
                 y="count:Q",
-                color="metric:N",
+                color=alt.Color(
+                    "metric:N",
+                    scale=alt.Scale(range=[CHART_THEME["accent"], "#93C5FD"]),
+                ),
                 tooltip=["date:T", "metric:N", "count:Q"],
             )
-            .properties(height=300, title=f"r/{league.lower() if league else 'sports'} activity for {team}")
+            .properties(
+                height=300,
+                title=f"r/{league.lower() if league else 'sports'} activity for {team}",
+            )
         )
         st.altair_chart(chart, use_container_width=True)
     else:
@@ -181,17 +221,19 @@ if table_exists("reddit"):
 # ---------------------------------------------------------------------------
 
 if table_exists("news"):
-    st.subheader("News Volume")
+    section_header("News Volume")
     news_data = query(
         f"SELECT date, article_count FROM news "
         f"WHERE team = '{team}' ORDER BY date"
     )
     if not news_data.empty:
-        import altair as alt
-
         chart = (
             alt.Chart(news_data)
-            .mark_bar(color="#1f77b4")
+            .mark_bar(
+                color=CHART_THEME["accent"],
+                cornerRadiusTopLeft=3,
+                cornerRadiusTopRight=3,
+            )
             .encode(
                 x="date:T",
                 y="article_count:Q",

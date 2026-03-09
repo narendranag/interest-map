@@ -1,5 +1,5 @@
 """
-League Overview — rankings, composite scores, bar chart, and Top Movers.
+Zeitgeist | League Overview — rankings, composite scores, bar chart, and Top Movers.
 """
 
 from __future__ import annotations
@@ -13,13 +13,20 @@ from lib.charts import bar_chart, line_chart
 from lib.db import query, table_exists
 from lib.scoring import (
     compute_weighted_score,
-    detect_anomalies,
     normalize_min_max,
 )
+from lib.styles import apply_premium_theme, section_header, LEAGUE_COLORS
 from lib.teams import ALL_TEAMS, LEAGUE_TEAMS, TEAM_TO_LEAGUE
 
-st.set_page_config(page_title="League Overview", layout="wide")
-st.title("League Overview")
+st.set_page_config(page_title="Zeitgeist | League Overview", layout="wide")
+apply_premium_theme()
+
+st.markdown('<h1>League Overview</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="zg-subtitle">Rankings, composite scores, and trend analysis '
+    "across NBA, MLB &amp; NHL</p>",
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------------------------
 # Sidebar controls
@@ -35,7 +42,12 @@ selected_leagues = st.sidebar.multiselect(
 
 window = st.sidebar.slider("Time window (days)", 7, 90, 30, step=7)
 
-st.sidebar.subheader("Metric Weights")
+st.sidebar.markdown(
+    '<div style="margin-top:1rem;font-size:0.75rem;font-weight:600;'
+    'text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;">'
+    "Metric Weights</div>",
+    unsafe_allow_html=True,
+)
 w_trends = st.sidebar.slider("Google Trends", 0.0, 1.0, 0.25, step=0.05)
 w_wiki = st.sidebar.slider("Wikipedia", 0.0, 1.0, 0.25, step=0.05)
 w_espn = st.sidebar.slider("Win rate (ESPN)", 0.0, 1.0, 0.20, step=0.05)
@@ -121,7 +133,6 @@ else:
 # Merge & normalise into a daily panel
 # ---------------------------------------------------------------------------
 
-# Build a date x team scaffold from trends + wiki
 if not trends.empty:
     base = trends.copy()
 elif not wiki.empty:
@@ -131,17 +142,14 @@ else:
     st.info("No data available yet. Run the pipeline to populate data.")
     st.stop()
 
-# Merge wiki
 if not wiki.empty:
     base = base.merge(wiki, on=["date", "team"], how="outer")
 else:
     base["wiki_views"] = 0
 
-# Fill missing
 base["trends_score"] = base["trends_score"].fillna(0)
 base["wiki_views"] = base["wiki_views"].fillna(0)
 
-# Merge reddit (aggregate per team-date)
 if not reddit.empty:
     reddit_agg = reddit.groupby(["date", "team"])["reddit_engagement"].sum().reset_index()
     base = base.merge(reddit_agg, on=["date", "team"], how="left")
@@ -149,14 +157,12 @@ else:
     base["reddit_engagement"] = 0
 base["reddit_engagement"] = base["reddit_engagement"].fillna(0)
 
-# Merge news
 if not news.empty:
     base = base.merge(news, on=["date", "team"], how="left")
 else:
     base["article_count"] = 0
 base["article_count"] = base["article_count"].fillna(0)
 
-# Normalise each metric per-team
 for col_in, col_out in [
     ("trends_score", "trends_norm"),
     ("wiki_views", "wiki_norm"),
@@ -165,12 +171,10 @@ for col_in, col_out in [
 ]:
     base[col_out] = base.groupby("team")[col_in].transform(normalize_min_max)
 
-# ESPN win rate is a single value per team — broadcast to every row
 espn_map = espn.set_index("team")["win_rate"].fillna(0)
 espn_norm = normalize_min_max(espn_map)
 base["espn_norm"] = base["team"].map(espn_norm).fillna(0)
 
-# Weighted composite
 weights = {
     "trends_norm": w_trends,
     "wiki_norm": w_wiki,
@@ -192,7 +196,8 @@ if base.empty:
 latest = base["date"].max()
 snapshot = base[base["date"] == latest].sort_values(metric, ascending=False)
 
-st.subheader(f"Rankings \u2014 {latest}")
+section_header("Rankings", f"Snapshot for {latest}")
+
 display_cols = [
     "league", "team", "trends_norm", "wiki_norm",
     "espn_norm", "reddit_norm", "news_norm", "interest_score",
@@ -201,6 +206,18 @@ st.dataframe(
     snapshot[display_cols].reset_index(drop=True),
     use_container_width=True,
     hide_index=True,
+    column_config={
+        "league": st.column_config.TextColumn("League", width="small"),
+        "team": st.column_config.TextColumn("Team", width="medium"),
+        "interest_score": st.column_config.ProgressColumn(
+            "Interest Score", format="%.1f", min_value=0, max_value=100,
+        ),
+        "trends_norm": st.column_config.NumberColumn("Trends", format="%.1f"),
+        "wiki_norm": st.column_config.NumberColumn("Wiki", format="%.1f"),
+        "espn_norm": st.column_config.NumberColumn("ESPN", format="%.1f"),
+        "reddit_norm": st.column_config.NumberColumn("Reddit", format="%.1f"),
+        "news_norm": st.column_config.NumberColumn("News", format="%.1f"),
+    },
 )
 
 # ---------------------------------------------------------------------------
@@ -208,7 +225,10 @@ st.dataframe(
 # ---------------------------------------------------------------------------
 
 st.altair_chart(
-    bar_chart(snapshot, "team", metric, title=f"{metric.replace('_',' ').title()} by Team"),
+    bar_chart(
+        snapshot, "team", metric,
+        title=f"{metric.replace('_', ' ').title()} by Team",
+    ),
     use_container_width=True,
 )
 
@@ -227,13 +247,17 @@ with st.expander("Metric breakdown per team"):
 # Trendlines
 # ---------------------------------------------------------------------------
 
-st.subheader("Trendlines")
+section_header("Trendlines")
+
 focus_league = st.selectbox("Focus league", selected_leagues)
 subset = base[base["league"] == focus_league]
 
 if not subset.empty:
     st.altair_chart(
-        line_chart(subset, "date", metric, "team", title=f"{focus_league} — {metric.replace('_',' ').title()}"),
+        line_chart(
+            subset, "date", metric, "team",
+            title=f"{focus_league} — {metric.replace('_', ' ').title()}",
+        ),
         use_container_width=True,
     )
 
@@ -241,22 +265,53 @@ if not subset.empty:
 # Top Movers (7-day delta)
 # ---------------------------------------------------------------------------
 
-st.subheader("Top Movers (7-day \u0394)")
+section_header("Top Movers", "7-day change in selected metric")
+
 dmax = base["date"].max()
 cur = base[(base["date"] <= dmax) & (base["date"] > dmax - timedelta(days=7))]
 prev = base[
     (base["date"] <= dmax - timedelta(days=7))
     & (base["date"] > dmax - timedelta(days=14))
 ]
+
 if not cur.empty and not prev.empty:
     w1 = cur.groupby("team")[metric].mean()
     w0 = prev.groupby("team")[metric].mean()
     movers = (w1 - w0).sort_values(ascending=False).rename("delta").reset_index()
     movers["league"] = movers["team"].map(TEAM_TO_LEAGUE)
-    st.dataframe(
-        movers[["league", "team", "delta"]].head(12).reset_index(drop=True),
-        use_container_width=True,
-        hide_index=True,
-    )
+
+    col_rise, col_fall = st.columns(2)
+
+    with col_rise:
+        st.markdown(
+            '<div class="league-accent-nba">'
+            '<h3 style="color:#059669;margin:0">Biggest Risers</h3></div>',
+            unsafe_allow_html=True,
+        )
+        risers = movers.head(10)
+        st.dataframe(
+            risers[["league", "team", "delta"]].reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "delta": st.column_config.NumberColumn("Change", format="+%.2f"),
+            },
+        )
+
+    with col_fall:
+        st.markdown(
+            '<div class="league-accent-mlb">'
+            '<h3 style="color:#DC2626;margin:0">Biggest Fallers</h3></div>',
+            unsafe_allow_html=True,
+        )
+        fallers = movers.tail(10).sort_values("delta")
+        st.dataframe(
+            fallers[["league", "team", "delta"]].reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "delta": st.column_config.NumberColumn("Change", format="%+.2f"),
+            },
+        )
 else:
     st.info("Not enough historical data for Top Movers yet.")
