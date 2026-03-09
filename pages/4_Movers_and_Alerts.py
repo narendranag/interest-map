@@ -1,5 +1,5 @@
 """
-Movers & Alerts — biggest risers/fallers and anomaly detection.
+Zeitgeist | Movers & Alerts — biggest risers/fallers and anomaly detection.
 """
 
 from __future__ import annotations
@@ -12,10 +12,17 @@ import streamlit as st
 from lib.charts import anomaly_highlight_chart
 from lib.db import query, table_exists
 from lib.scoring import compute_weighted_score, detect_anomalies, normalize_min_max
+from lib.styles import apply_premium_theme, section_header
 from lib.teams import ALL_TEAMS, LEAGUE_TEAMS, TEAM_TO_LEAGUE
 
-st.set_page_config(page_title="Movers & Alerts", layout="wide")
-st.title("Movers & Alerts")
+st.set_page_config(page_title="Zeitgeist | Movers & Alerts", layout="wide")
+apply_premium_theme()
+
+st.markdown('<h1>Movers &amp; Alerts</h1>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="zg-subtitle">Biggest risers, fallers, and statistical anomaly detection</p>',
+    unsafe_allow_html=True,
+)
 
 # ---------------------------------------------------------------------------
 # Sidebar controls
@@ -44,7 +51,6 @@ delta_days = 7 if period == "7 days" else 30
 # Load composite score over time
 # ---------------------------------------------------------------------------
 
-# Build a simple composite from trends + wiki (most reliable time-series)
 if table_exists("trends"):
     trends = query(
         f"SELECT date, team, trends_score FROM trends "
@@ -80,7 +86,6 @@ else:
 base["trends_score"] = base["trends_score"].fillna(0)
 base["wiki_views"] = base["wiki_views"].fillna(0)
 
-# Normalise per team
 base["trends_norm"] = base.groupby("team")["trends_score"].transform(normalize_min_max)
 base["wiki_norm"] = base.groupby("team")["wiki_views"].transform(normalize_min_max)
 base["interest_score"] = compute_weighted_score(
@@ -92,7 +97,7 @@ base["league"] = base["team"].map(TEAM_TO_LEAGUE)
 # Top Movers
 # ---------------------------------------------------------------------------
 
-st.subheader(f"Top Movers ({period})")
+section_header(f"Top Movers", f"{period} change in interest score")
 
 dmax = base["date"].max()
 cur = base[(base["date"] <= dmax) & (base["date"] > dmax - timedelta(days=delta_days))]
@@ -110,21 +115,39 @@ if not cur.empty and not prev.empty:
     col_rise, col_fall = st.columns(2)
 
     with col_rise:
-        st.markdown("**Biggest Risers** \u2B06\uFE0F")
+        st.markdown(
+            '<div class="league-accent-nba">'
+            '<h3 style="color:#059669;margin:0">Biggest Risers</h3></div>',
+            unsafe_allow_html=True,
+        )
         risers = deltas.sort_values("delta", ascending=False).head(10)
         st.dataframe(
             risers[["league", "team", "delta"]].reset_index(drop=True),
             use_container_width=True,
             hide_index=True,
+            column_config={
+                "league": st.column_config.TextColumn("League", width="small"),
+                "team": st.column_config.TextColumn("Team"),
+                "delta": st.column_config.NumberColumn("Change", format="+%.2f"),
+            },
         )
 
     with col_fall:
-        st.markdown("**Biggest Fallers** \u2B07\uFE0F")
+        st.markdown(
+            '<div class="league-accent-mlb">'
+            '<h3 style="color:#DC2626;margin:0">Biggest Fallers</h3></div>',
+            unsafe_allow_html=True,
+        )
         fallers = deltas.sort_values("delta", ascending=True).head(10)
         st.dataframe(
             fallers[["league", "team", "delta"]].reset_index(drop=True),
             use_container_width=True,
             hide_index=True,
+            column_config={
+                "league": st.column_config.TextColumn("League", width="small"),
+                "team": st.column_config.TextColumn("Team"),
+                "delta": st.column_config.NumberColumn("Change", format="%+.2f"),
+            },
         )
 else:
     st.info("Not enough historical data for delta calculations yet.")
@@ -133,7 +156,7 @@ else:
 # Anomaly Detection
 # ---------------------------------------------------------------------------
 
-st.subheader("Anomaly Alerts")
+section_header("Anomaly Alerts", "Statistical spikes exceeding the rolling threshold")
 
 anomalies_df = detect_anomalies(
     base,
@@ -149,8 +172,11 @@ flagged = anomalies_df[anomalies_df["is_anomaly"]].sort_values(
 
 if not flagged.empty:
     st.markdown(
-        f"**{len(flagged)} anomalous data point(s)** detected "
-        f"(>{anomaly_threshold}\u03c3 from 30-day rolling mean)."
+        f'<div class="zg-alert">'
+        f"<strong>{len(flagged)} anomalous data point(s)</strong> detected "
+        f"(&gt;{anomaly_threshold}\u03c3 from 30-day rolling mean)"
+        f"</div>",
+        unsafe_allow_html=True,
     )
     st.dataframe(
         flagged[["date", "league", "team", "interest_score", "z_score"]]
@@ -158,6 +184,13 @@ if not flagged.empty:
         .reset_index(drop=True),
         use_container_width=True,
         hide_index=True,
+        column_config={
+            "date": st.column_config.DateColumn("Date"),
+            "league": st.column_config.TextColumn("League", width="small"),
+            "team": st.column_config.TextColumn("Team"),
+            "interest_score": st.column_config.NumberColumn("Score", format="%.1f"),
+            "z_score": st.column_config.NumberColumn("Z-Score", format="%.2f"),
+        },
     )
 
     # Let user pick a team to visualise
@@ -174,7 +207,10 @@ if not flagged.empty:
             use_container_width=True,
         )
 else:
-    st.success(
+    st.markdown(
+        f'<div class="zg-alert" style="background:#ECFDF5;border-color:#A7F3D0;color:#065F46">'
         f"No anomalies detected at the {anomaly_threshold}\u03c3 threshold. "
-        "All teams are within normal ranges."
+        f"All teams are within normal ranges."
+        f"</div>",
+        unsafe_allow_html=True,
     )
