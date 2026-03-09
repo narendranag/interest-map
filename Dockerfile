@@ -8,6 +8,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
+COPY pages/ pages/
+COPY lib/ lib/
+COPY data/ data/
+COPY .streamlit/ .streamlit/
 
 EXPOSE 8501
 # Healthcheck is optional but handy
