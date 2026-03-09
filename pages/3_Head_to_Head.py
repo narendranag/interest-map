@@ -103,9 +103,7 @@ if metric_series:
     comparison.index.name = "Team"
 
     st.dataframe(
-        comparison.style.format("{:.1f}").background_gradient(
-            cmap="Blues", axis=0, subset=comparison.columns
-        ),
+        comparison.style.format("{:.1f}"),
         use_container_width=True,
     )
 
