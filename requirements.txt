@@ -1,9 +1,7 @@
-streamlit 
-pandas 
-numpy 
-pytrends 
-altair 
+streamlit
+pandas
+numpy
+pytrends
+altair
 requests
-snscrape 
 google-api-python-client
-instaloader
