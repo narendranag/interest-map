@@ -1,31 +1,78 @@
 """
-Fetch Reddit community activity for each team from the public JSON API.
+Fetch Reddit community activity for each team via OAuth2.
 
-Uses unauthenticated access (~10 req/min) with a 6-second delay between
-requests.  Each team is searched within its league's subreddit for posts
-from the past week.
+Reddit requires OAuth2 authentication for API access.  Set the environment
+variables ``REDDIT_CLIENT_ID`` and ``REDDIT_CLIENT_SECRET`` (create a free
+"script" app at https://www.reddit.com/prefs/apps).  If credentials are
+missing the fetcher is skipped gracefully.
+
+With OAuth2 the rate limit is 60 req/min (vs. blocked for unauthenticated).
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import time
+import urllib.parse
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import pandas as pd
+import requests
 
 from lib.teams import REDDIT_SUBREDDITS, TEAM_TO_LEAGUE
-from pipeline.utils import create_session
 
 log = logging.getLogger(__name__)
 
-_REDDIT_UA = "InterestMap/2.0 (sports dashboard; github.com/narendranag/interest-map)"
+_USER_AGENT = "InterestMap/2.0 (by /u/interest-map-bot; github.com/narendranag/interest-map)"
+
+
+def _get_oauth_token() -> Optional[str]:
+    """Obtain a Reddit OAuth2 bearer token using client-credentials flow."""
+    client_id = os.environ.get("REDDIT_CLIENT_ID", "")
+    client_secret = os.environ.get("REDDIT_CLIENT_SECRET", "")
+
+    if not client_id or not client_secret:
+        log.warning(
+            "REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET not set — "
+            "skipping Reddit.  Create a free app at "
+            "https://www.reddit.com/prefs/apps"
+        )
+        return None
+
+    try:
+        resp = requests.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=(client_id, client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"User-Agent": _USER_AGENT},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        token = resp.json().get("access_token")
+        if token:
+            log.info("Reddit OAuth2 token obtained")
+        return token
+    except Exception as exc:
+        log.warning("Reddit OAuth2 token request failed: %s", exc)
+        return None
 
 
 def fetch(teams: List[str], days: int = 7) -> pd.DataFrame:
     """Return DataFrame[date, team, league, post_count, total_score, total_comments]."""
-    session = create_session(user_agent=_REDDIT_UA)
+    token = _get_oauth_token()
+    if token is None:
+        return pd.DataFrame(columns=[
+            "date", "team", "league", "post_count", "total_score", "total_comments",
+        ])
+
+    session = requests.Session()
+    session.headers.update({
+        "Authorization": f"Bearer {token}",
+        "User-Agent": _USER_AGENT,
+    })
+
     cutoff = datetime.utcnow() - timedelta(days=days)
     all_rows: List[Dict] = []
 
@@ -35,24 +82,30 @@ def fetch(teams: List[str], days: int = 7) -> pd.DataFrame:
         if not subreddit:
             continue
 
+        encoded_team = urllib.parse.quote(team)
         url = (
-            f"https://www.reddit.com/r/{subreddit}/search.json"
-            f"?q={team}&sort=new&restrict_sr=on&t=week&limit=100"
+            f"https://oauth.reddit.com/r/{subreddit}/search"
+            f"?q={encoded_team}&sort=new&restrict_sr=on&t=week&limit=100"
         )
         try:
             resp = session.get(url, timeout=20)
             if resp.status_code == 429:
-                log.warning("Reddit rate-limited — sleeping 30s")
-                time.sleep(30)
+                log.warning("Reddit rate-limited — sleeping 10s")
+                time.sleep(10)
                 resp = session.get(url, timeout=20)
+            if resp.status_code == 401:
+                # Token expired — re-auth
+                new_token = _get_oauth_token()
+                if new_token:
+                    session.headers["Authorization"] = f"Bearer {new_token}"
+                    resp = session.get(url, timeout=20)
             if resp.status_code != 200:
                 log.warning("Reddit %s: HTTP %d", team, resp.status_code)
-                time.sleep(6)
+                time.sleep(1)
                 continue
 
             posts = resp.json().get("data", {}).get("children", [])
 
-            # Aggregate per day
             daily: Dict[str, Dict] = {}
             for post in posts:
                 d = post.get("data", {})
@@ -77,7 +130,7 @@ def fetch(teams: List[str], days: int = 7) -> pd.DataFrame:
         except Exception as exc:
             log.warning("Reddit %s failed: %s", team, exc)
 
-        time.sleep(6)  # respect ~10 req/min
+        time.sleep(1)  # 60 req/min = 1s between requests
 
     if all_rows:
         return pd.DataFrame(all_rows)
