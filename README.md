@@ -2,54 +2,100 @@
 
 **[View the live app](https://major-league-interest-map.streamlit.app)**
 
-This project is a lightweight web application that compares the daily interest in professional sports teams across the NBA, MLB, and NHL. While the long-term goal is to visualise bid-stream metrics (e.g. daily bid volume and bid rate per team) from an advertising platform, this dashboard uses public proxy datasets to approximate advertiser interest. The proxies let you prototype the pipeline and explore surging teams before integrating proprietary data.
+Compare daily digital attention across NBA, MLB, and NHL teams using six public proxy data sources. The dashboard ranks teams by a configurable weighted interest score, tracks trends over time, and flags statistical anomalies.
+
+## Architecture
+
+```
+Pipeline (GitHub Actions, every 6h)        Streamlit App (read-only)
+  Google Trends ──┐                        ┌── League Overview
+  Wikipedia ──────┤                        ├── Team Deep Dive
+  ESPN ───────────┼── parquet files ──────>├── Head to Head
+  Reddit ─────────┤   (committed to git)   └── Movers & Alerts
+  Google News ────┘
+```
+
+Data collection is fully decoupled from display. A scheduled GitHub Actions pipeline fetches all sources every six hours and commits parquet files to the `deploy` branch. The Streamlit app loads these into an in-memory DuckDB database on startup for instant queries.
 
 ## Data sources
 
-### Google Trends (relative search interest)
+| Source | What it measures | Update frequency |
+|--------|-----------------|------------------|
+| **Google Trends** | Relative search interest (0-100) | Every 6h |
+| **Wikipedia Pageviews** | Daily article views from Wikimedia API | Every 6h |
+| **ESPN** | Game schedules, scores (W/L), broadcast channels | Every 6h |
+| **Victory+** | Free streaming availability (detected from ESPN broadcasts) | Every 6h |
+| **Reddit** | Community post volume and engagement (r/nba, r/baseball, r/hockey) | Every 6h |
+| **Google News** | Daily article count per team | Every 6h |
 
-We pull historical interest for each team name from Google Trends. Google Trends reports search interest as a relative score (0–100) scaled to the peak value in the selected time period; values are not absolute search volumes. A downward trend means the team's relative popularity is falling compared with all other Google searches, not necessarily that absolute search volume is declining. Google Trends also excludes low-volume queries and removes duplicate searches from the same user.
+### Victory+
 
-We use the pytrends client (unofficial Google Trends API). Pytrends restricts time-window options: daily data is available only for 1- or 7-day windows (e.g., `now 1-d`, `now 7-d`), and monthly data for 1, 3, or 12 months (e.g., `today 1-m`, `today 3-m`, `today 12-m`). The app maps the user-selected window to one of these valid timeframes when requesting data.
+[Victory+](https://victoryplus.com) is a free sports streaming platform. The dashboard detects Victory+ availability from ESPN broadcast data and highlights upcoming games that can be watched for free. Current Victory+ partners include the Anaheim Ducks, Dallas Stars, and Texas Rangers.
 
-### Wikipedia Pageviews (news-driven attention)
+## Dashboard pages
 
-As a second proxy for advertiser interest, the app queries the Wikimedia REST API for daily pageview counts of each team's Wikipedia article. The `/metrics/pageviews/per-article/<project>/<access>/<agent>/<article>/daily/<start>/<end>` endpoint returns views per day for a given article and date range. Wikipedia pageviews capture spikes in attention driven by news events (trades, injuries, playoff runs) and complement search interest.
-
-### YouTube channel statistics (optional)
-
-If you supply a YouTube Data API v3 key in the sidebar, the app fetches total view and subscriber counts for each team's official YouTube channel. These counts are point-in-time totals (not daily series) and are useful for ranking overall digital presence. Without an API key this source is skipped and its weight is redistributed across the other two metrics.
-
-## Approach
-
-1. Compile team lists: the app contains complete lists of NBA, MLB and NHL teams. Each team name is used as a query term for the data sources.
-2. Fetch Google Trends: using pytrends, the app fetches interest over time for each team in batches of 5. The selected window of n days is mapped to a valid timeframe (`now 7-d`, `today 1-m`, `today 3-m`, `today 12-m`) to satisfy API requirements.
-3. Fetch Wikipedia pageviews: for each team, the app calls the Wikimedia API to retrieve daily pageview counts between the selected start and end dates.
-4. Fetch YouTube stats (optional): if an API key is provided, total views and subscribers are pulled for each team's channel.
-5. Normalise and blend metrics: each metric is normalised per team to the 0–100 range and an interest score is computed as a weighted blend. Weights are configurable through sidebar sliders and are automatically normalised to sum to 1.
-6. Interactive dashboard: built with Streamlit, the dashboard lets you filter by league, choose a time window, rank by any metric, and adjust weights. It shows a ranking table, bar chart, trend lines, a "top movers" table, and an expandable metric breakdown.
-7. Ready for real bid data: replace the `fetch_interest_proxies` function with a warehouse query returning `date`, `league`, `team`, `bid_volume`, and `bid_rate` to visualise your own metrics.
-
-## Limitations and considerations
-
-- Google Trends is relative: scores are normalised and not directly comparable across queries.
-- Coverage: low-search-volume teams may return zeros.
-- Delay: Wikipedia data typically lags by ~24 hours.
-- Noise: these proxies measure general attention rather than actual ad bids.
-- YouTube quota: the YouTube Data API has a daily quota of 10,000 units. A full fetch for all teams uses most of this quota on the first load (results are cached for one hour).
+- **League Overview** — Rankings, bar chart, configurable metric weights, Top Movers (7-day delta)
+- **Team Deep Dive** — Single-team trendlines with W/L game annotations, upcoming schedule with Victory+ flags, Reddit buzz, news volume
+- **Head to Head** — Compare 2-5 teams side by side across all metrics
+- **Movers & Alerts** — Biggest risers/fallers and anomaly detection (statistical spikes)
 
 ## Running locally
 
-1. Clone or download this repository.
-2. Install dependencies:
+1. Clone the repository:
 
 ```bash
-python -m pip install -r requirements.txt
+git clone https://github.com/narendranag/interest-map.git
+cd interest-map
 ```
 
-3. Run the app and open it in your browser:
+2. Install app dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Seed initial data (requires pipeline dependencies):
+
+```bash
+pip install -r requirements-pipeline.txt
+python -m pipeline.run_pipeline
+```
+
+4. Run the app:
 
 ```bash
 streamlit run app.py
-# then open http://localhost:8501
 ```
+
+## Project structure
+
+```
+app.py                          # Home page
+pages/                          # Multi-page Streamlit dashboard
+  1_League_Overview.py
+  2_Team_Deep_Dive.py
+  3_Head_to_Head.py
+  4_Movers_and_Alerts.py
+lib/                            # Shared modules
+  teams.py                      # Team definitions, ESPN IDs, league metadata
+  db.py                         # DuckDB in-memory loader
+  scoring.py                    # Normalisation, weighted scoring, anomaly detection
+  charts.py                     # Altair chart builders
+pipeline/                       # Data fetchers (run by GitHub Actions)
+  fetch_trends.py               # Google Trends
+  fetch_wikipedia.py            # Wikipedia pageviews
+  fetch_espn.py                 # ESPN schedules, scores, broadcasts
+  fetch_reddit.py               # Reddit community metrics
+  fetch_news.py                 # Google News RSS
+  run_pipeline.py               # Orchestrator
+data/                           # Pipeline output (parquet files)
+.github/workflows/update_data.yml  # Scheduled pipeline
+```
+
+## Limitations
+
+- Google Trends scores are relative (0-100 within the query), not absolute search volumes.
+- Reddit unauthenticated API is limited to ~10 requests/minute; the pipeline takes ~10 minutes for all teams.
+- Wikipedia data typically lags by ~24 hours.
+- Victory+ availability is inferred from ESPN broadcast data and a static list of known partner teams.
+- ESPN API is unofficial and may change without notice.
