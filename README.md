@@ -1,5 +1,7 @@
 # Team Interest Dashboard
 
+**[View the live app](https://major-league-interest-map.streamlit.app)**
+
 This project is a lightweight web application that compares the daily interest in professional sports teams across the NBA, MLB, and NHL. While the long-term goal is to visualise bid-stream metrics (e.g. daily bid volume and bid rate per team) from an advertising platform, this dashboard uses public proxy datasets to approximate advertiser interest. The proxies let you prototype the pipeline and explore surging teams before integrating proprietary data.
 
 ## Data sources
