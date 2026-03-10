@@ -27,8 +27,8 @@ st.markdown(
     """
 Zeitgeist tracks and compares **digital attention** across all 92 teams in
 the NBA, MLB, and NHL. Instead of relying on a single metric, it combines
-six independent data sources into a composite **Interest Score** that
-reflects how much buzz each team is generating online.
+up to **eleven independent data sources** into a composite **Interest Score**
+that reflects how much buzz each team is generating online.
 
 Whether you work in sports media, sponsorship, advertising, or are simply a
 curious fan, Zeitgeist gives you a data-driven answer to the question:
@@ -40,7 +40,7 @@ curious fan, Zeitgeist gives you a data-driven answer to the question:
 # Data sources
 # ---------------------------------------------------------------------------
 
-section_header("Data Sources", "Six proxy metrics updated every six hours")
+section_header("Data Sources", "Up to eleven proxy metrics updated every six hours")
 
 sources = [
     (
@@ -64,14 +64,45 @@ sources = [
         "Games on Victory+ are flagged in the Team Deep Dive.",
     ),
     (
-        "Reddit",
+        "Reddit (League)",
         "Post volume and comment engagement from r/nba, r/baseball, and "
-        "r/hockey. Measures community conversation.",
+        "r/hockey. Measures community conversation at the league level.",
     ),
     (
         "Google News",
         "Daily article count from Google News RSS. Tracks mainstream "
         "media coverage for each team.",
+    ),
+    (
+        "Team Subreddits",
+        "Subscriber counts, active users, and post activity from each "
+        "team's dedicated subreddit (e.g. r/lakers, r/bostonceltics). "
+        "NBA teams only.",
+    ),
+    (
+        "Attendance",
+        "Game attendance and venue capacity percentages from ESPN. "
+        "Measures real-world fan turnout for home games.",
+    ),
+    (
+        "Ticket Demand (SeatGeek)",
+        "Average ticket price, lowest price, and listing count from SeatGeek. "
+        "Measures secondary market demand. Requires API key.",
+    ),
+    (
+        "YouTube",
+        "Channel subscriber counts and total view counts from YouTube Data API v3. "
+        "Measures content reach and audience size. Requires API key.",
+    ),
+    (
+        "Betting Odds",
+        "Implied win probability averaged across US bookmakers from The Odds API. "
+        "Captures market expectations. NBA only; requires API key.",
+    ),
+    (
+        "Merchandise Rankings",
+        "NBA jersey and merchandise sales rankings scraped from NBA.com. "
+        "Reflects commercial popularity. Updated when NBA publishes data.",
     ),
 ]
 
@@ -104,16 +135,18 @@ pages_info = [
         "League Overview",
         "The big picture. See every team ranked by a **weighted composite "
         "score** that you control. Adjust the sliders in the sidebar to "
-        "weight Google Trends, Wikipedia, ESPN win rate, Reddit buzz, and "
-        "News coverage however you like. Scroll down for **Top Movers** "
-        "(biggest 7-day risers and fallers) and league-filtered trendlines.",
+        "weight all eleven metrics however you like. The six new sources "
+        "(Subreddits, Attendance, Tickets, YouTube, Betting, Merchandise) "
+        "default to zero weight for backward compatibility. Scroll down for "
+        "**Top Movers** (biggest 7-day risers and fallers) and trendlines.",
     ),
     (
         "Team Deep Dive",
         "Pick a single team and see all its metrics overlaid on one chart, "
         "with **W/L game annotations** from ESPN. Below that: recent results, "
         "upcoming schedule (with **Victory+ streaming** flags), Reddit "
-        "community activity, and news volume over time.",
+        "community activity, news volume, team subreddit stats, attendance, "
+        "ticket demand, YouTube metrics, betting odds, and merchandise ranking.",
     ),
     (
         "Head to Head",
@@ -152,12 +185,14 @@ section_header("How the Interest Score Works")
 st.markdown(
     """
 The **Interest Score** on the League Overview page is a weighted average of
-five normalised metrics:
+up to eleven normalised metrics:
 
-1. Each raw metric (Trends, Wikipedia, ESPN win rate, Reddit, News) is
-   normalised to a **0-100 scale** using min-max scaling across all teams.
-2. You set the **weights** via sidebar sliders. The weights are
-   automatically re-normalised so they sum to 1.0.
+1. Each raw metric (Trends, Wikipedia, ESPN, Reddit, News, Team Subreddits,
+   Attendance, Tickets, YouTube, Betting, Merchandise) is normalised to a
+   **0-100 scale** using min-max scaling across all teams.
+2. You set the **weights** via sidebar sliders. The original five sources
+   have non-zero defaults; the six new sources default to zero for backward
+   compatibility. The weights are automatically re-normalised so they sum to 1.0.
 3. The composite score is simply:
 """
 )
@@ -244,7 +279,8 @@ st.markdown("---")
 st.markdown(
     '<div style="text-align:center;font-size:0.8rem;color:#9CA3AF;padding:1rem 0">'
     "Built with Streamlit, DuckDB, and Altair. "
-    "Data sourced from Google Trends, Wikipedia, ESPN, Reddit, and Google News."
+    "Data sourced from Google Trends, Wikipedia, ESPN, Reddit, Google News, "
+    "SeatGeek, YouTube, The Odds API, and NBA.com."
     "</div>",
     unsafe_allow_html=True,
 )

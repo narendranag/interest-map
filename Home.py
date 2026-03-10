@@ -95,10 +95,12 @@ if table_exists("trends"):
         team_count = str(int(stats["teams"].iloc[0]))
         latest_date = str(stats["latest"].iloc[0])
 
-sources_available = sum(
-    1 for t in ("trends", "wikipedia", "espn_games", "reddit", "news")
-    if table_exists(t)
+_ALL_SOURCE_TABLES = (
+    "trends", "wikipedia", "espn_games", "reddit", "news",
+    "team_subreddits", "attendance", "tickets", "youtube", "betting", "merchandise",
 )
+sources_available = sum(1 for t in _ALL_SOURCE_TABLES if table_exists(t))
+sources_total = len(_ALL_SOURCE_TABLES)
 
 with col1:
     st.markdown(
@@ -114,7 +116,7 @@ with col3:
     st.markdown(
         metric_card(
             "Active Sources",
-            f"{sources_available} / 5",
+            f"{sources_available} / {sources_total}",
             accent_color=LEAGUE_COLORS["NHL"],
         ),
         unsafe_allow_html=True,
@@ -160,34 +162,30 @@ st.caption("Use the sidebar on the left to navigate between pages.")
 # Data sources
 # ---------------------------------------------------------------------------
 
-section_header("Data Sources", "Six proxy metrics powering the Interest Index")
+section_header("Data Sources", "Eleven proxy metrics powering the Interest Index")
 
-st.markdown(
-    '<div class="zg-source-grid">'
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">Google Trends</div>'
-    '    <div class="zg-source-desc">Relative search interest (0-100)</div>'
-    "  </div>"
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">Wikipedia</div>'
-    '    <div class="zg-source-desc">Daily article pageviews</div>'
-    "  </div>"
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">ESPN</div>'
-    '    <div class="zg-source-desc">Schedules, scores, broadcasts</div>'
-    "  </div>"
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">Victory+</div>'
-    '    <div class="zg-source-desc">Free streaming availability</div>'
-    "  </div>"
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">Reddit</div>'
-    '    <div class="zg-source-desc">Community post volume &amp; engagement</div>'
-    "  </div>"
-    '  <div class="zg-source-card">'
-    '    <div class="zg-source-name">Google News</div>'
-    '    <div class="zg-source-desc">Daily article count per team</div>'
-    "  </div>"
-    "</div>",
-    unsafe_allow_html=True,
-)
+_source_cards = [
+    ("Google Trends", "Relative search interest (0-100)"),
+    ("Wikipedia", "Daily article pageviews"),
+    ("ESPN", "Schedules, scores, broadcasts"),
+    ("Victory+", "Free streaming availability"),
+    ("Reddit", "Community post volume &amp; engagement"),
+    ("Google News", "Daily article count per team"),
+    ("Team Subreddits", "Team-specific subreddit activity &amp; subscribers"),
+    ("Attendance", "Game attendance &amp; venue capacity %"),
+    ("Ticket Demand", "SeatGeek avg price &amp; listing count"),
+    ("YouTube", "Channel subscribers &amp; total views"),
+    ("Betting Odds", "Implied win probability from bookmakers"),
+    ("Merchandise", "NBA jersey &amp; merchandise rankings"),
+]
+
+_cards_html = '<div class="zg-source-grid">'
+for name, desc in _source_cards:
+    _cards_html += (
+        f'<div class="zg-source-card">'
+        f'  <div class="zg-source-name">{name}</div>'
+        f'  <div class="zg-source-desc">{desc}</div>'
+        f"</div>"
+    )
+_cards_html += "</div>"
+st.markdown(_cards_html, unsafe_allow_html=True)

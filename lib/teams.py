@@ -149,6 +149,131 @@ VICTORY_PLUS_BROADCAST_PATTERNS: List[str] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Team-specific subreddits (NBA only for now)
+# ---------------------------------------------------------------------------
+
+TEAM_SUBREDDITS: Dict[str, str] = {
+    # NBA
+    "Atlanta Hawks": "AtlantaHawks",
+    "Boston Celtics": "bostonceltics",
+    "Brooklyn Nets": "GoNets",
+    "Charlotte Hornets": "CharlotteHornets",
+    "Chicago Bulls": "chicagobulls",
+    "Cleveland Cavaliers": "clevelandcavs",
+    "Dallas Mavericks": "Mavericks",
+    "Denver Nuggets": "denvernuggets",
+    "Detroit Pistons": "DetroitPistons",
+    "Golden State Warriors": "warriors",
+    "Houston Rockets": "rockets",
+    "Indiana Pacers": "pacers",
+    "LA Clippers": "LAClippers",
+    "Los Angeles Lakers": "lakers",
+    "Memphis Grizzlies": "memphisgrizzlies",
+    "Miami Heat": "heat",
+    "Milwaukee Bucks": "MkeBucks",
+    "Minnesota Timberwolves": "timberwolves",
+    "New Orleans Pelicans": "NOLAPelicans",
+    "New York Knicks": "NYKnicks",
+    "Oklahoma City Thunder": "Thunder",
+    "Orlando Magic": "OrlandoMagic",
+    "Philadelphia 76ers": "sixers",
+    "Phoenix Suns": "suns",
+    "Portland Trail Blazers": "ripcity",
+    "Sacramento Kings": "kings",
+    "San Antonio Spurs": "NBASpurs",
+    "Toronto Raptors": "torontoraptors",
+    "Utah Jazz": "UtahJazz",
+    "Washington Wizards": "washingtonwizards",
+}
+
+# ---------------------------------------------------------------------------
+# SeatGeek performer slugs (NBA only for now)
+# ---------------------------------------------------------------------------
+
+SEATGEEK_SLUGS: Dict[str, str] = {
+    "Atlanta Hawks": "atlanta-hawks",
+    "Boston Celtics": "boston-celtics",
+    "Brooklyn Nets": "brooklyn-nets",
+    "Charlotte Hornets": "charlotte-hornets",
+    "Chicago Bulls": "chicago-bulls",
+    "Cleveland Cavaliers": "cleveland-cavaliers",
+    "Dallas Mavericks": "dallas-mavericks",
+    "Denver Nuggets": "denver-nuggets",
+    "Detroit Pistons": "detroit-pistons",
+    "Golden State Warriors": "golden-state-warriors",
+    "Houston Rockets": "houston-rockets",
+    "Indiana Pacers": "indiana-pacers",
+    "LA Clippers": "los-angeles-clippers",
+    "Los Angeles Lakers": "los-angeles-lakers",
+    "Memphis Grizzlies": "memphis-grizzlies",
+    "Miami Heat": "miami-heat",
+    "Milwaukee Bucks": "milwaukee-bucks",
+    "Minnesota Timberwolves": "minnesota-timberwolves",
+    "New Orleans Pelicans": "new-orleans-pelicans",
+    "New York Knicks": "new-york-knicks",
+    "Oklahoma City Thunder": "oklahoma-city-thunder",
+    "Orlando Magic": "orlando-magic",
+    "Philadelphia 76ers": "philadelphia-76ers",
+    "Phoenix Suns": "phoenix-suns",
+    "Portland Trail Blazers": "portland-trail-blazers",
+    "Sacramento Kings": "sacramento-kings",
+    "San Antonio Spurs": "san-antonio-spurs",
+    "Toronto Raptors": "toronto-raptors",
+    "Utah Jazz": "utah-jazz",
+    "Washington Wizards": "washington-wizards",
+}
+
+# ---------------------------------------------------------------------------
+# YouTube channel IDs (NBA only for now)
+# ---------------------------------------------------------------------------
+
+YOUTUBE_CHANNEL_IDS: Dict[str, str] = {
+    "Atlanta Hawks": "UCaJTp_S2GclhUaheWBhVAdg",
+    "Boston Celtics": "UCz-IpT5a1SkzxGMVlYiglig",
+    "Brooklyn Nets": "UCe7hTQFHfxjf9KqBIjfi6Qg",
+    "Charlotte Hornets": "UCBnXE3fOEl2T1T-UVNljQLg",
+    "Chicago Bulls": "UCHt_Mbo-UBqcHmr3aqwSBQg",
+    "Cleveland Cavaliers": "UCz0JVnrqeqj-9X7hs3gz_bg",
+    "Dallas Mavericks": "UCo15sFavMNiig8sPCnoUJ7g",
+    "Denver Nuggets": "UC0ZV6M2THA81HT9mlHnt4Rw",
+    "Detroit Pistons": "UCkxsv1EA9oQfGLIjN_eem0w",
+    "Golden State Warriors": "UCVj_5HFACU7mEqOXkvPx4Yw",
+    "Houston Rockets": "UCbjMvj6JFg5Ks2f5WkyYz3g",
+    "Indiana Pacers": "UC6DSpHVYiAZj9Y5Zt4hPDPg",
+    "LA Clippers": "UCdLjIR1d-2R5jF3O0VGZ5lA",
+    "Los Angeles Lakers": "UC8CSt-oVqy8pUAoKSApTxQw",
+    "Memphis Grizzlies": "UC4Xb3xLIPPG1i80prSeflaQ",
+    "Miami Heat": "UCqQo7ewe87aYAe7ub5bkMEg",
+    "Milwaukee Bucks": "UCOTYMrG72JVWPurFZwqfteA",
+    "Minnesota Timberwolves": "UCuPcBIM3QxDGm5C-FQN2T4Q",
+    "New Orleans Pelicans": "UC8M0FMlFoxTOXWCVaFGdGog",
+    "New York Knicks": "UCe9FXHB3VUtQwU_TSQhJqKQ",
+    "Oklahoma City Thunder": "UC_bZbKBW5GZjtEl0KGz_YtA",
+    "Orlando Magic": "UCVoMBx-ITpuwl_Mkg7HVOUQ",
+    "Philadelphia 76ers": "UCWPV1UCrm4f4RW4_5HWsfg",
+    "Phoenix Suns": "UCTSB7MsXpDC8i7NWoJ9GSDQ",
+    "Portland Trail Blazers": "UCkKFS4VO1P9FMJKqPN-sRRw",
+    "Sacramento Kings": "UCpBODEGJTh9EJOMgQbXRCUQ",
+    "San Antonio Spurs": "UCtSgkDXPMfjTF_CDOdVB-HA",
+    "Toronto Raptors": "UCEETn3pOyar93l0C8vkx2eQ",
+    "Utah Jazz": "UCsS0tEMfKZYdJw28nnMRqhA",
+    "Washington Wizards": "UC77Gnch_TdMGaD7-r0_aJ5w",
+}
+
+# ---------------------------------------------------------------------------
+# The Odds API team name mapping (fixes mismatches)
+# ---------------------------------------------------------------------------
+
+ODDS_API_TEAMS: Dict[str, str] = {
+    "LA Clippers": "Los Angeles Clippers",
+}
+# Build reverse lookup: Odds API name -> canonical name
+ODDS_API_TO_CANONICAL: Dict[str, str] = {v: k for k, v in ODDS_API_TEAMS.items()}
+# Add identity mappings for all NBA teams
+for _name in NBA_TEAMS:
+    ODDS_API_TO_CANONICAL.setdefault(_name, _name)
+
+# ---------------------------------------------------------------------------
 # Seasons (used for seasonal normalisation)
 # ---------------------------------------------------------------------------
 

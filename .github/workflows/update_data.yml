@@ -24,6 +24,10 @@ jobs:
         run: pip install -r requirements-pipeline.txt
 
       - name: Run data pipeline
+        env:
+          SEATGEEK_CLIENT_ID: ${{ secrets.SEATGEEK_CLIENT_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python -m pipeline.run_pipeline
 
       - name: Commit and push updated data
