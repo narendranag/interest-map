@@ -46,15 +46,6 @@ team_sql = ", ".join(f"'{t}'" for t in selected)
 
 metric_series = {}
 
-if table_exists("trends"):
-    df = query(
-        f"SELECT date, team, trends_score FROM trends "
-        f"WHERE team IN ({team_sql}) AND date >= CURRENT_DATE - INTERVAL '{window}' DAY"
-    )
-    if not df.empty:
-        avg = df.groupby("team")["trends_score"].mean()
-        metric_series["Google Trends"] = normalize_min_max(avg)
-
 if table_exists("wikipedia"):
     df = query(
         f"SELECT date, team, wiki_views FROM wikipedia "
@@ -74,15 +65,6 @@ if table_exists("espn_games"):
     if not df.empty:
         metric_series["Win %"] = df.set_index("team")["win_pct"].fillna(0)
 
-if table_exists("reddit"):
-    df = query(
-        f"SELECT team, SUM(post_count + total_comments) AS engagement "
-        f"FROM reddit WHERE team IN ({team_sql}) "
-        f"AND date >= CURRENT_DATE - INTERVAL '{window}' DAY GROUP BY team"
-    )
-    if not df.empty:
-        metric_series["Reddit"] = normalize_min_max(df.set_index("team")["engagement"])
-
 if table_exists("news"):
     df = query(
         f"SELECT team, SUM(article_count) AS articles "
@@ -92,15 +74,7 @@ if table_exists("news"):
     if not df.empty:
         metric_series["News"] = normalize_min_max(df.set_index("team")["articles"])
 
-# --- New sources ---
-
-if table_exists("team_subreddits"):
-    df = query(
-        f"SELECT team, MAX(subscribers) AS subs "
-        f"FROM team_subreddits WHERE team IN ({team_sql}) GROUP BY team"
-    )
-    if not df.empty:
-        metric_series["Subreddit"] = normalize_min_max(df.set_index("team")["subs"])
+# --- Additional sources ---
 
 if table_exists("attendance"):
     df = query(
@@ -175,9 +149,7 @@ else:
 section_header("Trendlines")
 
 trend_sources = {
-    "Google Trends": ("trends", "trends_score"),
     "Wikipedia": ("wikipedia", "wiki_views"),
-    "Reddit": ("reddit", "(post_count + total_comments)"),
     "News": ("news", "article_count"),
 }
 
