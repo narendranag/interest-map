@@ -63,23 +63,20 @@ def main() -> None:
 
     from lib.teams import ALL_TEAMS
     from pipeline import (
-        fetch_espn, fetch_news, fetch_reddit, fetch_trends, fetch_wikipedia,
-        fetch_team_subreddits, fetch_attendance, fetch_tickets,
-        fetch_youtube, fetch_betting, fetch_merchandise,
+        fetch_espn, fetch_news, fetch_wikipedia,
+        fetch_attendance, fetch_tickets,
+        fetch_youtube, fetch_betting,
     )
 
     sources: Dict[str, Dict[str, Any]] = {}
 
-    # --- Google Trends ---
-    log.info("=== Google Trends ===")
-    try:
-        df = fetch_trends.fetch(ALL_TEAMS, days=90)
-        rows = _save(df, "trends")
-        sources["trends"] = {"rows": rows, "status": "ok"}
-        log.info("Trends: %d rows", rows)
-    except Exception as exc:
-        log.error("Trends failed: %s", exc)
-        sources["trends"] = {"rows": 0, "status": str(exc)}
+    # ---------------------------------------------------------------
+    # Removed sources (kept as files for local use):
+    #   - Google Trends: 100% 429s from GitHub Actions (IP blocked)
+    #   - Reddit (league): 100% 403s from CI (IP blocked)
+    #   - Team Subreddits: 100% 403s from CI (same Reddit block)
+    #   - Merchandise: no reliable public scraping source
+    # ---------------------------------------------------------------
 
     # --- Wikipedia ---
     log.info("=== Wikipedia ===")
@@ -103,17 +100,6 @@ def main() -> None:
         log.error("ESPN failed: %s", exc)
         sources["espn_games"] = {"rows": 0, "status": str(exc)}
 
-    # --- Reddit ---
-    log.info("=== Reddit ===")
-    try:
-        df = fetch_reddit.fetch(ALL_TEAMS, days=7)
-        rows = _save(df, "reddit")
-        sources["reddit"] = {"rows": rows, "status": "ok"}
-        log.info("Reddit: %d rows", rows)
-    except Exception as exc:
-        log.error("Reddit failed: %s", exc)
-        sources["reddit"] = {"rows": 0, "status": str(exc)}
-
     # --- News ---
     log.info("=== News ===")
     try:
@@ -124,17 +110,6 @@ def main() -> None:
     except Exception as exc:
         log.error("News failed: %s", exc)
         sources["news"] = {"rows": 0, "status": str(exc)}
-
-    # --- Team Subreddits ---
-    log.info("=== Team Subreddits ===")
-    try:
-        df = fetch_team_subreddits.fetch()
-        rows = _save(df, "team_subreddits")
-        sources["team_subreddits"] = {"rows": rows, "status": "ok"}
-        log.info("Team Subreddits: %d rows", rows)
-    except Exception as exc:
-        log.error("Team Subreddits failed: %s", exc)
-        sources["team_subreddits"] = {"rows": 0, "status": str(exc)}
 
     # --- Attendance ---
     log.info("=== Attendance ===")
@@ -179,17 +154,6 @@ def main() -> None:
     except Exception as exc:
         log.error("Betting failed: %s", exc)
         sources["betting"] = {"rows": 0, "status": str(exc)}
-
-    # --- Merchandise ---
-    log.info("=== Merchandise ===")
-    try:
-        df = fetch_merchandise.fetch()
-        rows = _save(df, "merchandise")
-        sources["merchandise"] = {"rows": rows, "status": "ok"}
-        log.info("Merchandise: %d rows", rows)
-    except Exception as exc:
-        log.error("Merchandise failed: %s", exc)
-        sources["merchandise"] = {"rows": 0, "status": str(exc)}
 
     # --- Meta ---
     meta = {

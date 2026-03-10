@@ -2,7 +2,7 @@
 Zeitgeist: The Sports Interest Index — Home page.
 
 A multi-page Streamlit dashboard that compares digital attention across
-NBA, MLB, and NHL teams using six proxy data sources fetched by an
+NBA, MLB, and NHL teams using seven proxy data sources fetched by an
 automated pipeline.
 """
 
@@ -84,20 +84,20 @@ col1, col2, col3 = st.columns(3)
 team_count = "92"
 latest_date = "N/A"
 
-if table_exists("trends"):
+if table_exists("wikipedia"):
     from lib.db import query
 
     stats = query(
         "SELECT COUNT(DISTINCT team) AS teams, MAX(date) AS latest "
-        "FROM trends"
+        "FROM wikipedia"
     )
     if not stats.empty:
         team_count = str(int(stats["teams"].iloc[0]))
         latest_date = str(stats["latest"].iloc[0])
 
 _ALL_SOURCE_TABLES = (
-    "trends", "wikipedia", "espn_games", "reddit", "news",
-    "team_subreddits", "attendance", "tickets", "youtube", "betting", "merchandise",
+    "wikipedia", "espn_games", "news",
+    "attendance", "tickets", "youtube", "betting",
 )
 sources_available = sum(1 for t in _ALL_SOURCE_TABLES if table_exists(t))
 sources_total = len(_ALL_SOURCE_TABLES)
@@ -162,21 +162,16 @@ st.caption("Use the sidebar on the left to navigate between pages.")
 # Data sources
 # ---------------------------------------------------------------------------
 
-section_header("Data Sources", "Eleven proxy metrics powering the Interest Index")
+section_header("Data Sources", "Seven proxy metrics powering the Interest Index")
 
 _source_cards = [
-    ("Google Trends", "Relative search interest (0-100)"),
     ("Wikipedia", "Daily article pageviews"),
-    ("ESPN", "Schedules, scores, broadcasts"),
-    ("Victory+", "Free streaming availability"),
-    ("Reddit", "Community post volume &amp; engagement"),
+    ("ESPN", "Schedules, scores, broadcasts &amp; Victory+ streaming"),
     ("Google News", "Daily article count per team"),
-    ("Team Subreddits", "Team-specific subreddit activity &amp; subscribers"),
     ("Attendance", "Game attendance &amp; venue capacity %"),
     ("Ticket Demand", "SeatGeek avg price &amp; listing count"),
     ("YouTube", "Channel subscribers &amp; total views"),
     ("Betting Odds", "Implied win probability from bookmakers"),
-    ("Merchandise", "NBA jersey &amp; merchandise rankings"),
 ]
 
 _cards_html = '<div class="zg-source-grid">'

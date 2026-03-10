@@ -51,15 +51,6 @@ delta_days = 7 if period == "7 days" else 30
 # Load composite score over time
 # ---------------------------------------------------------------------------
 
-if table_exists("trends"):
-    trends = query(
-        f"SELECT date, team, trends_score FROM trends "
-        f"WHERE team IN ({team_sql}) "
-        f"AND date >= CURRENT_DATE - INTERVAL '90' DAY"
-    )
-else:
-    trends = pd.DataFrame(columns=["date", "team", "trends_score"])
-
 if table_exists("wikipedia"):
     wiki = query(
         f"SELECT date, team, wiki_views FROM wikipedia "
@@ -69,37 +60,14 @@ if table_exists("wikipedia"):
 else:
     wiki = pd.DataFrame(columns=["date", "team", "wiki_views"])
 
-if trends.empty and wiki.empty:
+if wiki.empty:
     st.info("No data available yet. Run the pipeline first.")
     st.stop()
 
-# Merge
-if not trends.empty and not wiki.empty:
-    base = trends.merge(wiki, on=["date", "team"], how="outer")
-elif not trends.empty:
-    base = trends.copy()
-    base["wiki_views"] = 0
-else:
-    base = wiki.copy()
-    base["trends_score"] = 0
-
-base["trends_score"] = base["trends_score"].fillna(0)
+base = wiki.copy()
 base["wiki_views"] = base["wiki_views"].fillna(0)
 
-# Merge Reddit and News for a richer composite
-if table_exists("reddit"):
-    _reddit = query(
-        f"SELECT date, team, (post_count + total_comments) AS reddit_engagement "
-        f"FROM reddit WHERE team IN ({team_sql}) "
-        f"AND date >= CURRENT_DATE - INTERVAL '90' DAY"
-    )
-    if not _reddit.empty:
-        _reddit_agg = _reddit.groupby(["date", "team"])["reddit_engagement"].sum().reset_index()
-        base = base.merge(_reddit_agg, on=["date", "team"], how="left")
-if "reddit_engagement" not in base.columns:
-    base["reddit_engagement"] = 0
-base["reddit_engagement"] = base["reddit_engagement"].fillna(0)
-
+# Merge News for a richer composite
 if table_exists("news"):
     _news = query(
         f"SELECT date, team, article_count "
@@ -112,16 +80,12 @@ if "article_count" not in base.columns:
     base["article_count"] = 0
 base["article_count"] = base["article_count"].fillna(0)
 
-base["trends_norm"] = base.groupby("team")["trends_score"].transform(normalize_min_max)
 base["wiki_norm"] = base.groupby("team")["wiki_views"].transform(normalize_min_max)
-base["reddit_norm"] = base.groupby("team")["reddit_engagement"].transform(normalize_min_max)
 base["news_norm"] = base.groupby("team")["article_count"].transform(normalize_min_max)
 
 _movers_weights = {
-    "trends_norm": 0.30,
-    "wiki_norm": 0.25,
-    "reddit_norm": 0.20,
-    "news_norm": 0.25,
+    "wiki_norm": 0.50,
+    "news_norm": 0.50,
 }
 base["interest_score"] = compute_weighted_score(base, _movers_weights)
 base["league"] = base["team"].map(TEAM_TO_LEAGUE)

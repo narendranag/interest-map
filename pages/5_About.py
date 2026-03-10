@@ -27,7 +27,7 @@ st.markdown(
     """
 Zeitgeist tracks and compares **digital attention** across all 92 teams in
 the NBA, MLB, and NHL. Instead of relying on a single metric, it combines
-up to **eleven independent data sources** into a composite **Interest Score**
+up to **seven independent data sources** into a composite **Interest Score**
 that reflects how much buzz each team is generating online.
 
 Whether you work in sports media, sponsorship, advertising, or are simply a
@@ -40,14 +40,9 @@ curious fan, Zeitgeist gives you a data-driven answer to the question:
 # Data sources
 # ---------------------------------------------------------------------------
 
-section_header("Data Sources", "Up to eleven proxy metrics updated every six hours")
+section_header("Data Sources", "Seven proxy metrics updated every six hours")
 
 sources = [
-    (
-        "Google Trends",
-        "Relative search interest on a 0-100 scale. Captures how often "
-        "people are actively searching for a team.",
-    ),
     (
         "Wikipedia Pageviews",
         "Daily article views from the Wikimedia API. A spike usually "
@@ -56,28 +51,13 @@ sources = [
     (
         "ESPN Scores & Schedules",
         "Game results (W/L), upcoming schedules, and broadcast channels "
-        "pulled from ESPN's public scoreboard API.",
-    ),
-    (
-        "Victory+",
-        "Free streaming availability detected from ESPN broadcast data. "
-        "Games on Victory+ are flagged in the Team Deep Dive.",
-    ),
-    (
-        "Reddit (League)",
-        "Post volume and comment engagement from r/nba, r/baseball, and "
-        "r/hockey. Measures community conversation at the league level.",
+        "pulled from ESPN's public scoreboard API. Games on Victory+ are "
+        "flagged in the Team Deep Dive.",
     ),
     (
         "Google News",
         "Daily article count from Google News RSS. Tracks mainstream "
         "media coverage for each team.",
-    ),
-    (
-        "Team Subreddits",
-        "Subscriber counts, active users, and post activity from each "
-        "team's dedicated subreddit (e.g. r/lakers, r/bostonceltics). "
-        "NBA teams only.",
     ),
     (
         "Attendance",
@@ -98,11 +78,6 @@ sources = [
         "Betting Odds",
         "Implied win probability averaged across US bookmakers from The Odds API. "
         "Captures market expectations. NBA only; requires API key.",
-    ),
-    (
-        "Merchandise Rankings",
-        "NBA jersey and merchandise sales rankings scraped from NBA.com. "
-        "Reflects commercial popularity. Updated when NBA publishes data.",
     ),
 ]
 
@@ -135,24 +110,22 @@ pages_info = [
         "League Overview",
         "The big picture. See every team ranked by a **weighted composite "
         "score** that you control. Adjust the sliders in the sidebar to "
-        "weight all eleven metrics however you like. The six new sources "
-        "(Subreddits, Attendance, Tickets, YouTube, Betting, Merchandise) "
-        "default to zero weight for backward compatibility. Scroll down for "
-        "**Top Movers** (biggest 7-day risers and fallers) and trendlines.",
+        "weight Wikipedia, ESPN, News, Attendance, Tickets, YouTube, and "
+        "Betting however you like. Scroll down for **Top Movers** (biggest "
+        "7-day risers and fallers) and trendlines.",
     ),
     (
         "Team Deep Dive",
         "Pick a single team and see all its metrics overlaid on one chart, "
         "with **W/L game annotations** from ESPN. Below that: recent results, "
-        "upcoming schedule (with **Victory+ streaming** flags), Reddit "
-        "community activity, news volume, team subreddit stats, attendance, "
-        "ticket demand, YouTube metrics, betting odds, and merchandise ranking.",
+        "upcoming schedule (with **Victory+ streaming** flags), news volume, "
+        "attendance, ticket demand, YouTube metrics, and betting odds.",
     ),
     (
         "Head to Head",
         "Select 2-5 teams and compare them side by side. A metric "
         "comparison table and grouped bar chart show how they stack up. "
-        "Switch between Google Trends and Wikipedia trendline tabs to see "
+        "Switch between Wikipedia and News trendline tabs to see "
         "how attention has shifted over time.",
     ),
     (
@@ -185,14 +158,13 @@ section_header("How the Interest Score Works")
 st.markdown(
     """
 The **Interest Score** on the League Overview page is a weighted average of
-up to eleven normalised metrics:
+up to seven normalised metrics:
 
-1. Each raw metric (Trends, Wikipedia, ESPN, Reddit, News, Team Subreddits,
-   Attendance, Tickets, YouTube, Betting, Merchandise) is normalised to a
-   **0-100 scale** using min-max scaling across all teams.
-2. You set the **weights** via sidebar sliders. The original five sources
-   have non-zero defaults; the six new sources default to zero for backward
-   compatibility. The weights are automatically re-normalised so they sum to 1.0.
+1. Each raw metric (Wikipedia, ESPN, News, Attendance, Tickets, YouTube,
+   Betting) is normalised to a **0-100 scale** using min-max scaling
+   across all teams.
+2. You set the **weights** via sidebar sliders. The weights are
+   automatically re-normalised so they sum to 1.0.
 3. The composite score is simply:
 """
 )
@@ -279,8 +251,8 @@ st.markdown("---")
 st.markdown(
     '<div style="text-align:center;font-size:0.8rem;color:#9CA3AF;padding:1rem 0">'
     "Built with Streamlit, DuckDB, and Altair. "
-    "Data sourced from Google Trends, Wikipedia, ESPN, Reddit, Google News, "
-    "SeatGeek, YouTube, The Odds API, and NBA.com."
+    "Data sourced from Wikipedia, ESPN, Google News, "
+    "SeatGeek, YouTube, and The Odds API."
     "</div>",
     unsafe_allow_html=True,
 )

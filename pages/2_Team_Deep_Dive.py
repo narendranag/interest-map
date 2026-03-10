@@ -53,15 +53,6 @@ section_header("Interest Trendlines", "Normalised metrics (0-100) with game anno
 
 frames = []
 
-if table_exists("trends"):
-    t = query(
-        f"SELECT date, trends_score AS value, 'Google Trends' AS metric "
-        f"FROM trends WHERE team = '{team}' ORDER BY date"
-    )
-    if not t.empty:
-        t["value"] = normalize_min_max(t["value"])
-        frames.append(t)
-
 if table_exists("wikipedia"):
     w = query(
         f"SELECT date, wiki_views AS value, 'Wikipedia' AS metric "
@@ -70,15 +61,6 @@ if table_exists("wikipedia"):
     if not w.empty:
         w["value"] = normalize_min_max(w["value"])
         frames.append(w)
-
-if table_exists("reddit"):
-    r = query(
-        f"SELECT date, (post_count + total_comments) AS value, 'Reddit' AS metric "
-        f"FROM reddit WHERE team = '{team}' ORDER BY date"
-    )
-    if not r.empty:
-        r["value"] = normalize_min_max(r["value"])
-        frames.append(r)
 
 if table_exists("news"):
     n = query(
@@ -179,44 +161,6 @@ if table_exists("espn_games"):
         st.caption("No upcoming games found.")
 
 # ---------------------------------------------------------------------------
-# Reddit buzz
-# ---------------------------------------------------------------------------
-
-if table_exists("reddit"):
-    section_header("Reddit Community Buzz")
-    reddit_data = query(
-        f"SELECT date, post_count, total_score, total_comments "
-        f"FROM reddit WHERE team = '{team}' ORDER BY date"
-    )
-    if not reddit_data.empty:
-        reddit_long = reddit_data.melt(
-            id_vars=["date"],
-            value_vars=["post_count", "total_comments"],
-            var_name="metric",
-            value_name="count",
-        )
-        chart = (
-            alt.Chart(reddit_long)
-            .mark_bar(cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
-            .encode(
-                x="date:T",
-                y="count:Q",
-                color=alt.Color(
-                    "metric:N",
-                    scale=alt.Scale(range=[CHART_THEME["accent"], "#93C5FD"]),
-                ),
-                tooltip=["date:T", "metric:N", "count:Q"],
-            )
-            .properties(
-                height=300,
-                title=f"r/{league.lower() if league else 'sports'} activity for {team}",
-            )
-        )
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.caption("No Reddit data for this team yet.")
-
-# ---------------------------------------------------------------------------
 # News volume
 # ---------------------------------------------------------------------------
 
@@ -244,24 +188,6 @@ if table_exists("news"):
         st.altair_chart(chart, use_container_width=True)
     else:
         st.caption("No news data for this team yet.")
-
-# ---------------------------------------------------------------------------
-# Team Subreddit
-# ---------------------------------------------------------------------------
-
-if table_exists("team_subreddits"):
-    sub_data = query(
-        f"SELECT date, subreddit, subscribers, active_users, posts_24h, avg_score "
-        f"FROM team_subreddits WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
-    )
-    if not sub_data.empty:
-        section_header("Team Subreddit", f"r/{sub_data['subreddit'].iloc[0]}")
-        sc1, sc2, sc3, sc4 = st.columns(4)
-        row = sub_data.iloc[0]
-        sc1.metric("Subscribers", f"{int(row['subscribers']):,}")
-        sc2.metric("Active Now", f"{int(row['active_users']):,}")
-        sc3.metric("Posts (24h)", int(row["posts_24h"]))
-        sc4.metric("Avg Post Score", f"{row['avg_score']:.0f}")
 
 # ---------------------------------------------------------------------------
 # Attendance
@@ -339,15 +265,3 @@ if table_exists("betting"):
         bc1.metric("Implied Win Prob", f"{brow['implied_win_prob'] * 100:.1f}%")
         bc2.metric("Bookmaker Entries", int(brow["num_bookmakers"]))
 
-# ---------------------------------------------------------------------------
-# Merchandise
-# ---------------------------------------------------------------------------
-
-if table_exists("merchandise"):
-    merch_data = query(
-        f"SELECT date, merch_rank "
-        f"FROM merchandise WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
-    )
-    if not merch_data.empty:
-        section_header("Merchandise Ranking")
-        st.metric("NBA Merchandise Rank", f"#{int(merch_data['merch_rank'].iloc[0])}")
