@@ -244,3 +244,110 @@ if table_exists("news"):
         st.altair_chart(chart, use_container_width=True)
     else:
         st.caption("No news data for this team yet.")
+
+# ---------------------------------------------------------------------------
+# Team Subreddit
+# ---------------------------------------------------------------------------
+
+if table_exists("team_subreddits"):
+    sub_data = query(
+        f"SELECT date, subreddit, subscribers, active_users, posts_24h, avg_score "
+        f"FROM team_subreddits WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
+    )
+    if not sub_data.empty:
+        section_header("Team Subreddit", f"r/{sub_data['subreddit'].iloc[0]}")
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        row = sub_data.iloc[0]
+        sc1.metric("Subscribers", f"{int(row['subscribers']):,}")
+        sc2.metric("Active Now", f"{int(row['active_users']):,}")
+        sc3.metric("Posts (24h)", int(row["posts_24h"]))
+        sc4.metric("Avg Post Score", f"{row['avg_score']:.0f}")
+
+# ---------------------------------------------------------------------------
+# Attendance
+# ---------------------------------------------------------------------------
+
+if table_exists("attendance"):
+    att_data = query(
+        f"SELECT date, opponent, attendance, capacity, attendance_pct "
+        f"FROM attendance WHERE team = '{team}' ORDER BY date DESC LIMIT 10"
+    )
+    if not att_data.empty:
+        section_header("Attendance")
+        st.dataframe(
+            att_data.reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "date": st.column_config.DateColumn("Date"),
+                "opponent": st.column_config.TextColumn("Opponent"),
+                "attendance": st.column_config.NumberColumn("Attendance", format="%d"),
+                "capacity": st.column_config.NumberColumn("Capacity", format="%d"),
+                "attendance_pct": st.column_config.NumberColumn("Fill %", format="%.1f%%"),
+            },
+        )
+
+# ---------------------------------------------------------------------------
+# Ticket Demand
+# ---------------------------------------------------------------------------
+
+if table_exists("tickets"):
+    tix_data = query(
+        f"SELECT date, avg_price, lowest_price, listing_count, num_events "
+        f"FROM tickets WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
+    )
+    if not tix_data.empty:
+        section_header("Ticket Demand", "SeatGeek market data")
+        tc1, tc2, tc3, tc4 = st.columns(4)
+        trow = tix_data.iloc[0]
+        tc1.metric("Avg Price", f"${trow['avg_price']:.0f}" if pd.notna(trow["avg_price"]) else "N/A")
+        tc2.metric("Lowest Price", f"${trow['lowest_price']:.0f}" if pd.notna(trow["lowest_price"]) else "N/A")
+        tc3.metric("Listings", f"{int(trow['listing_count']):,}" if pd.notna(trow["listing_count"]) else "N/A")
+        tc4.metric("Events", int(trow["num_events"]) if pd.notna(trow["num_events"]) else "N/A")
+
+# ---------------------------------------------------------------------------
+# YouTube
+# ---------------------------------------------------------------------------
+
+if table_exists("youtube"):
+    yt_data = query(
+        f"SELECT date, subscribers, total_views, video_count "
+        f"FROM youtube WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
+    )
+    if not yt_data.empty:
+        section_header("YouTube Channel")
+        yc1, yc2, yc3 = st.columns(3)
+        yrow = yt_data.iloc[0]
+        yc1.metric("Subscribers", f"{int(yrow['subscribers']):,}")
+        yc2.metric("Total Views", f"{int(yrow['total_views']):,}")
+        yc3.metric("Videos", f"{int(yrow['video_count']):,}")
+
+# ---------------------------------------------------------------------------
+# Betting Odds
+# ---------------------------------------------------------------------------
+
+if table_exists("betting"):
+    bet_data = query(
+        f"SELECT date, implied_win_prob, num_bookmakers "
+        f"FROM betting WHERE team = '{team}' "
+        f"AND implied_win_prob IS NOT NULL ORDER BY date DESC LIMIT 1"
+    )
+    if not bet_data.empty:
+        section_header("Betting Odds")
+        bc1, bc2 = st.columns(2)
+        brow = bet_data.iloc[0]
+        bc1.metric("Implied Win Prob", f"{brow['implied_win_prob'] * 100:.1f}%")
+        bc2.metric("Bookmaker Entries", int(brow["num_bookmakers"]))
+
+# ---------------------------------------------------------------------------
+# Merchandise
+# ---------------------------------------------------------------------------
+
+if table_exists("merchandise"):
+    merch_data = query(
+        f"SELECT date, merch_rank "
+        f"FROM merchandise WHERE team = '{team}' ORDER BY date DESC LIMIT 1"
+    )
+    if not merch_data.empty:
+        section_header("Merchandise Ranking")
+        st.metric("NBA Merchandise Rank", f"#{int(merch_data['merch_rank'].iloc[0])}")

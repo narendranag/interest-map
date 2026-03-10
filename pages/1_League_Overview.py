@@ -54,9 +54,27 @@ w_espn = st.sidebar.slider("Win rate (ESPN)", 0.0, 1.0, 0.20, step=0.05)
 w_reddit = st.sidebar.slider("Reddit buzz", 0.0, 1.0, 0.15, step=0.05)
 w_news = st.sidebar.slider("News coverage", 0.0, 1.0, 0.15, step=0.05)
 
+st.sidebar.markdown(
+    '<div style="margin-top:0.5rem;font-size:0.7rem;font-weight:600;'
+    'text-transform:uppercase;letter-spacing:0.05em;color:#9CA3AF;">'
+    "New Sources (default 0)</div>",
+    unsafe_allow_html=True,
+)
+w_subreddit = st.sidebar.slider("Team Subreddits", 0.0, 1.0, 0.0, step=0.05)
+w_attendance = st.sidebar.slider("Attendance", 0.0, 1.0, 0.0, step=0.05)
+w_tickets = st.sidebar.slider("Ticket Demand", 0.0, 1.0, 0.0, step=0.05)
+w_youtube = st.sidebar.slider("YouTube", 0.0, 1.0, 0.0, step=0.05)
+w_betting = st.sidebar.slider("Betting Odds", 0.0, 1.0, 0.0, step=0.05)
+w_merch = st.sidebar.slider("Merchandise", 0.0, 1.0, 0.0, step=0.05)
+
+_all_metrics = [
+    "interest_score", "trends_norm", "wiki_norm", "espn_norm",
+    "reddit_norm", "news_norm", "subreddit_norm", "attendance_norm",
+    "tickets_norm", "youtube_norm", "betting_norm", "merch_norm",
+]
 metric = st.selectbox(
     "Rank by",
-    ["interest_score", "trends_norm", "wiki_norm", "espn_norm", "reddit_norm", "news_norm"],
+    _all_metrics,
     format_func=lambda m: m.replace("_", " ").title(),
 )
 
@@ -129,6 +147,80 @@ if table_exists("news"):
 else:
     news = pd.DataFrame(columns=["date", "team", "article_count"])
 
+# --- New sources (team-level aggregates, mapped onto base) ---
+
+# Team Subreddits — subscribers as engagement proxy
+if table_exists("team_subreddits"):
+    team_sub = query(
+        f"SELECT team, MAX(subscribers) AS sub_subscribers, "
+        f"MAX(active_users) AS sub_active "
+        f"FROM team_subreddits "
+        f"WHERE team IN ({team_list_sql}) "
+        f"GROUP BY team"
+    )
+else:
+    team_sub = pd.DataFrame(columns=["team", "sub_subscribers", "sub_active"])
+
+# Attendance — average attendance %
+if table_exists("attendance"):
+    attend = query(
+        f"SELECT team, AVG(attendance_pct) AS avg_attendance_pct "
+        f"FROM attendance "
+        f"WHERE team IN ({team_list_sql}) "
+        f"AND attendance_pct IS NOT NULL "
+        f"AND date >= CURRENT_DATE - INTERVAL '{window}' DAY "
+        f"GROUP BY team"
+    )
+else:
+    attend = pd.DataFrame(columns=["team", "avg_attendance_pct"])
+
+# Tickets — average ticket price as demand proxy
+if table_exists("tickets"):
+    tickets = query(
+        f"SELECT team, AVG(avg_price) AS avg_ticket_price "
+        f"FROM tickets "
+        f"WHERE team IN ({team_list_sql}) "
+        f"AND avg_price IS NOT NULL "
+        f"GROUP BY team"
+    )
+else:
+    tickets = pd.DataFrame(columns=["team", "avg_ticket_price"])
+
+# YouTube — subscriber count
+if table_exists("youtube"):
+    yt = query(
+        f"SELECT team, MAX(subscribers) AS yt_subscribers "
+        f"FROM youtube "
+        f"WHERE team IN ({team_list_sql}) "
+        f"GROUP BY team"
+    )
+else:
+    yt = pd.DataFrame(columns=["team", "yt_subscribers"])
+
+# Betting — implied win probability
+if table_exists("betting"):
+    betting = query(
+        f"SELECT team, AVG(implied_win_prob) AS avg_win_prob "
+        f"FROM betting "
+        f"WHERE team IN ({team_list_sql}) "
+        f"AND implied_win_prob IS NOT NULL "
+        f"AND date >= CURRENT_DATE - INTERVAL '{window}' DAY "
+        f"GROUP BY team"
+    )
+else:
+    betting = pd.DataFrame(columns=["team", "avg_win_prob"])
+
+# Merchandise — rank (lower is better, invert later)
+if table_exists("merchandise"):
+    merch = query(
+        f"SELECT team, MIN(merch_rank) AS merch_rank "
+        f"FROM merchandise "
+        f"WHERE team IN ({team_list_sql}) "
+        f"GROUP BY team"
+    )
+else:
+    merch = pd.DataFrame(columns=["team", "merch_rank"])
+
 # ---------------------------------------------------------------------------
 # Merge & normalise into a daily panel
 # ---------------------------------------------------------------------------
@@ -175,12 +267,64 @@ espn_map = espn.set_index("team")["win_rate"].fillna(0)
 espn_norm = normalize_min_max(espn_map)
 base["espn_norm"] = base["team"].map(espn_norm).fillna(0)
 
+# --- Normalise new sources (team-level, mapped onto base) ---
+
+# Team Subreddits
+if not team_sub.empty:
+    sub_map = normalize_min_max(team_sub.set_index("team")["sub_subscribers"].fillna(0))
+    base["subreddit_norm"] = base["team"].map(sub_map).fillna(0)
+else:
+    base["subreddit_norm"] = 0.0
+
+# Attendance
+if not attend.empty:
+    att_map = normalize_min_max(attend.set_index("team")["avg_attendance_pct"].fillna(0))
+    base["attendance_norm"] = base["team"].map(att_map).fillna(0)
+else:
+    base["attendance_norm"] = 0.0
+
+# Tickets
+if not tickets.empty:
+    tix_map = normalize_min_max(tickets.set_index("team")["avg_ticket_price"].fillna(0))
+    base["tickets_norm"] = base["team"].map(tix_map).fillna(0)
+else:
+    base["tickets_norm"] = 0.0
+
+# YouTube
+if not yt.empty:
+    yt_map = normalize_min_max(yt.set_index("team")["yt_subscribers"].fillna(0))
+    base["youtube_norm"] = base["team"].map(yt_map).fillna(0)
+else:
+    base["youtube_norm"] = 0.0
+
+# Betting
+if not betting.empty:
+    bet_map = normalize_min_max(betting.set_index("team")["avg_win_prob"].fillna(0))
+    base["betting_norm"] = base["team"].map(bet_map).fillna(0)
+else:
+    base["betting_norm"] = 0.0
+
+# Merchandise (invert: rank 1 = best = 100, rank 30 = worst = 0)
+if not merch.empty:
+    merch_inv = merch.set_index("team")["merch_rank"].fillna(30)
+    merch_inv = merch_inv.max() + 1 - merch_inv  # invert
+    merch_normed = normalize_min_max(merch_inv)
+    base["merch_norm"] = base["team"].map(merch_normed).fillna(0)
+else:
+    base["merch_norm"] = 0.0
+
 weights = {
     "trends_norm": w_trends,
     "wiki_norm": w_wiki,
     "espn_norm": w_espn,
     "reddit_norm": w_reddit,
     "news_norm": w_news,
+    "subreddit_norm": w_subreddit,
+    "attendance_norm": w_attendance,
+    "tickets_norm": w_tickets,
+    "youtube_norm": w_youtube,
+    "betting_norm": w_betting,
+    "merch_norm": w_merch,
 }
 base["interest_score"] = compute_weighted_score(base, weights)
 base["league"] = base["team"].map(TEAM_TO_LEAGUE)
@@ -199,11 +343,17 @@ snapshot = base[base["date"] == latest].sort_values(metric, ascending=False)
 section_header("Rankings", f"Snapshot for {latest}")
 
 display_cols = [
-    "league", "team", "trends_norm", "wiki_norm",
-    "espn_norm", "reddit_norm", "news_norm", "interest_score",
+    "league", "team", "interest_score",
+    "trends_norm", "wiki_norm", "espn_norm", "reddit_norm", "news_norm",
+    "subreddit_norm", "attendance_norm", "tickets_norm",
+    "youtube_norm", "betting_norm", "merch_norm",
 ]
+# Only show columns that have nonzero data
+active_cols = [c for c in display_cols if c in ("league", "team", "interest_score")
+               or (c in snapshot.columns and snapshot[c].sum() > 0)]
+
 st.dataframe(
-    snapshot[display_cols].reset_index(drop=True),
+    snapshot[active_cols].reset_index(drop=True),
     use_container_width=True,
     hide_index=True,
     column_config={
@@ -217,6 +367,12 @@ st.dataframe(
         "espn_norm": st.column_config.NumberColumn("ESPN", format="%.1f"),
         "reddit_norm": st.column_config.NumberColumn("Reddit", format="%.1f"),
         "news_norm": st.column_config.NumberColumn("News", format="%.1f"),
+        "subreddit_norm": st.column_config.NumberColumn("Subreddit", format="%.1f"),
+        "attendance_norm": st.column_config.NumberColumn("Attendance", format="%.1f"),
+        "tickets_norm": st.column_config.NumberColumn("Tickets", format="%.1f"),
+        "youtube_norm": st.column_config.NumberColumn("YouTube", format="%.1f"),
+        "betting_norm": st.column_config.NumberColumn("Betting", format="%.1f"),
+        "merch_norm": st.column_config.NumberColumn("Merch", format="%.1f"),
     },
 )
 
@@ -238,7 +394,7 @@ st.altair_chart(
 
 with st.expander("Metric breakdown per team"):
     st.dataframe(
-        snapshot[display_cols].reset_index(drop=True),
+        snapshot[active_cols].reset_index(drop=True),
         use_container_width=True,
         hide_index=True,
     )

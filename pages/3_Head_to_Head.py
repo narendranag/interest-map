@@ -92,6 +92,53 @@ if table_exists("news"):
     if not df.empty:
         metric_series["News"] = normalize_min_max(df.set_index("team")["articles"])
 
+# --- New sources ---
+
+if table_exists("team_subreddits"):
+    df = query(
+        f"SELECT team, MAX(subscribers) AS subs "
+        f"FROM team_subreddits WHERE team IN ({team_sql}) GROUP BY team"
+    )
+    if not df.empty:
+        metric_series["Subreddit"] = normalize_min_max(df.set_index("team")["subs"])
+
+if table_exists("attendance"):
+    df = query(
+        f"SELECT team, AVG(attendance_pct) AS att "
+        f"FROM attendance WHERE team IN ({team_sql}) "
+        f"AND attendance_pct IS NOT NULL "
+        f"AND date >= CURRENT_DATE - INTERVAL '{window}' DAY GROUP BY team"
+    )
+    if not df.empty:
+        metric_series["Attendance"] = normalize_min_max(df.set_index("team")["att"])
+
+if table_exists("tickets"):
+    df = query(
+        f"SELECT team, AVG(avg_price) AS price "
+        f"FROM tickets WHERE team IN ({team_sql}) "
+        f"AND avg_price IS NOT NULL GROUP BY team"
+    )
+    if not df.empty:
+        metric_series["Tickets"] = normalize_min_max(df.set_index("team")["price"])
+
+if table_exists("youtube"):
+    df = query(
+        f"SELECT team, MAX(subscribers) AS yt_subs "
+        f"FROM youtube WHERE team IN ({team_sql}) GROUP BY team"
+    )
+    if not df.empty:
+        metric_series["YouTube"] = normalize_min_max(df.set_index("team")["yt_subs"])
+
+if table_exists("betting"):
+    df = query(
+        f"SELECT team, AVG(implied_win_prob) AS prob "
+        f"FROM betting WHERE team IN ({team_sql}) "
+        f"AND implied_win_prob IS NOT NULL "
+        f"AND date >= CURRENT_DATE - INTERVAL '{window}' DAY GROUP BY team"
+    )
+    if not df.empty:
+        metric_series["Betting"] = normalize_min_max(df.set_index("team")["prob"])
+
 # ---------------------------------------------------------------------------
 # Side-by-side metric table
 # ---------------------------------------------------------------------------
@@ -130,6 +177,8 @@ section_header("Trendlines")
 trend_sources = {
     "Google Trends": ("trends", "trends_score"),
     "Wikipedia": ("wikipedia", "wiki_views"),
+    "Reddit": ("reddit", "(post_count + total_comments)"),
+    "News": ("news", "article_count"),
 }
 
 tabs = st.tabs(list(trend_sources.keys()))
