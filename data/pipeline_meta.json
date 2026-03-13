@@ -1,5 +1,5 @@
 {
-  "last_run": "2026-03-13T12:18:52.307212Z",
+  "last_run": "2026-03-13T18:17:45.825628Z",
   "status": "success",
   "sources": {
     "wikipedia": {
@@ -7,7 +7,7 @@
       "status": "ok"
     },
     "espn_games": {
-      "rows": 1746,
+      "rows": 1748,
       "status": "ok"
     },
     "news": {
