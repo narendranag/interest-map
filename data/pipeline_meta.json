@@ -1,21 +1,21 @@
 {
-  "last_run": "2026-04-16T00:44:12.619959Z",
+  "last_run": "2026-04-16T06:46:23.344140Z",
   "status": "success",
   "sources": {
     "wikipedia": {
-      "rows": 8181,
+      "rows": 8273,
       "status": "ok"
     },
     "espn_games": {
-      "rows": 3398,
+      "rows": 3414,
       "status": "ok"
     },
     "news": {
-      "rows": 4067,
+      "rows": 4095,
       "status": "ok"
     },
     "attendance": {
-      "rows": 1523,
+      "rows": 1543,
       "status": "ok"
     },
     "tickets": {
