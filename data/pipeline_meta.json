@@ -1,5 +1,5 @@
 {
-  "last_run": "2026-05-23T01:01:24.962939Z",
+  "last_run": "2026-05-23T07:10:57.173680Z",
   "status": "success",
   "sources": {
     "wikipedia": {
@@ -11,11 +11,11 @@
       "status": "ok"
     },
     "news": {
-      "rows": 7449,
+      "rows": 7476,
       "status": "ok"
     },
     "attendance": {
-      "rows": 2038,
+      "rows": 2052,
       "status": "ok"
     },
     "tickets": {
