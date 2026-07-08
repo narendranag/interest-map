@@ -1,9 +1,9 @@
 {
-  "last_run": "2026-07-08T12:49:05.030149Z",
+  "last_run": "2026-07-08T18:44:03.456296Z",
   "status": "success",
   "sources": {
     "wikipedia": {
-      "rows": 8267,
+      "rows": 8275,
       "status": "ok"
     },
     "espn_games": {
